@@ -1,0 +1,72 @@
+Title:
+“Introduction to Backstage and Setup Essentials”
+
+Description:
+“Begin your journey into the world of Backstage with a comprehensive introduction to its features and functionalities. This session provides an overview of Backstage’s role in enhancing DevOps practices and introduces the fundamental steps for setting up your Backstage environment. Get ready to embark on a seamless integration of Backstage into your development workflows.”
+
+Learning Objectives:
+
+	1.	Understand the role of Backstage in optimizing DevOps practices.
+	2.	Familiarize yourself with the core features and capabilities of Backstage.
+	3.	Learn the essential steps for setting up a Backstage environment.
+	4.	Gain insights into the benefits of integrating Backstage into development workflows.
+	5.	Prepare to implement Backstage effectively with our organization
+
+
+Title:
+“Exploring Backstage Software Templates and Customization”
+
+Description:
+“Get hands-on with Backstage software templates and learn how to tailor them to fit your project’s needs. This session guides you through using pre-built templates for faster development and shows you how to craft your own templates from scratch. By the end, you’ll have the skills to optimize your workflow and boost productivity with customized software templates in Backstage.”
+
+Learning Objectives:
+
+	1.	Understand the concept and importance of software templates in Backstage.
+	2.	Explore pre-built software templates available in Backstage and their functionalities.
+	3.	Learn the process of customizing existing software templates to align with specific project requirements.
+	4.	Acquire the skills to create custom software templates from scratch within Backstage.
+	5.	Discover best practices for managing and maintaining software templates to ensure ongoing efficiency in development workflows.
+
+
+Title:
+“Preparing Applications for Kubernetes with Docker”
+
+Description:
+“Discover how to get your applications ready for Kubernetes deployment using Docker. This session breaks down the process of containerizing applications and deploying them onto Kubernetes clusters. By the end, you’ll have the skills to streamline your deployment workflow and ensure seamless integration with Kubernetes.”
+
+Learning Objectives:
+
+	1.	Understand Docker and its role in containerization.
+	2.	Learn how to containerize applications for portability and consistency.
+	3.	Explore best practices for optimizing Docker images.
+	4.	Gain insights into Kubernetes deployment configurations.
+	5.	Acquire the skills to deploy Dockerized applications on Kubernetes clusters.
+
+
+Title:
+“Configuring Kubernetes Plugin in Backstage for Monitoring”
+
+Description:
+“Unlock the capabilities of Kubernetes monitoring within Backstage with this informative session. Dive into the configuration of the Kubernetes plugin and discover how it enhances monitoring and management of your Kubernetes resources. Learn how to set up monitoring dashboards, track resource utilization, and ensure optimal performance of your Kubernetes deployments.”
+
+Learning Objectives:
+
+	1.	Understand the importance of Kubernetes monitoring in DevOps environments.
+	2.	Explore the features and functionalities of the Kubernetes plugin in Backstage.
+	3.	Learn how to configure the Kubernetes plugin to monitor Kubernetes resources.
+	4.	Gain insights into setting up monitoring dashboards for visualizing resource metrics.
+	5.	Acquire the skills to track resource utilization and performance of Kubernetes deployments using Backstage.
+
+Title:
+“Integrating External APIs with Backstage: Leveraging the Proxy Feature”
+
+Description:
+“Discover how to seamlessly integrate external APIs into your Backstage environment using the built-in proxy feature. This session delves into the process of calling existing APIs through the Backstage proxy, enabling secure and centralized access to external services. Learn how to configure and manage API calls within Backstage, streamlining your development workflow and enhancing application functionality.”
+
+Learning Objectives:
+
+	1.	Understand the benefits of using the Backstage proxy for accessing external APIs.
+	2.	Explore the functionalities of the Backstage proxy feature and its role in API integration.
+	3.	Learn how to configure the Backstage proxy for secure communication with external APIs.
+	4.	Gain insights into best practices for managing and organizing API calls within Backstage.
+	5.	Acquire the skills to leverage the Backstage proxy effectively to enhance application functionality through external API integration.
