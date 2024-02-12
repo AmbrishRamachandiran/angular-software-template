@@ -3,7 +3,23 @@ import { Progress } from '@backstage/core-components';
 import Alert from '@material-ui/lab/Alert';
 import Button from '@material-ui/core/Button';
 import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
+import {
+  Avatar,
+  Box,
+  Divider,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Paper,
+} from '@material-ui/core';
+import DescriptionIcon from '@material-ui/icons/Description';
+import MemoryIcon from '@material-ui/icons/Memory';
+import DeveloperBoardIcon from '@material-ui/icons/DeveloperBoard';
+import BackstageLogoIcon from './BackstageLogoIcon';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { InfoDependenciesTable } from './InfoDependenciesTable';
+import { useInfo } from '../../../hooks';
 import { DevToolsInfo } from '@backstage/plugin-devtools-common';
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -109,8 +125,9 @@ export const InfoContent = () => {
           onClick={copyToClipboard}
           className={classes.copyButton}
           startIcon={<FileCopyIcon />}
+          disabled={infoCopied} // Disable the button after info is copied
         >
-          Copy Info to Clipboard
+          {infoCopied ? 'Info Copied!' : 'Copy Info to Clipboard'}
         </Button>
       </Paper>
       <InfoDependenciesTable infoDependencies={about?.dependencies} />
