@@ -1,0 +1,126 @@
+import React, { useState } from 'react';
+import { Progress } from '@backstage/core-components';
+import Alert from '@material-ui/lab/Alert';
+import Button from '@material-ui/core/Button';
+import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
+import { InfoDependenciesTable } from './InfoDependenciesTable';
+import { DevToolsInfo } from '@backstage/plugin-devtools-common';
+
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    paperStyle: {
+      display: 'flex',
+      marginBottom: theme.spacing(2),
+    },
+    flexContainer: {
+      display: 'flex',
+      flexDirection: 'row',
+      padding: 0,
+    },
+    copyButton: {
+      float: 'left',
+      margin: theme.spacing(2),
+    },
+    infoCopiedMessage: {
+      marginTop: theme.spacing(2),
+      color: '#4caf50', // Green color for success message
+    },
+  }),
+);
+
+export const InfoContent = () => {
+  const classes = useStyles();
+  const [infoCopied, setInfoCopied] = useState(false);
+  const { about, loading, error } = useInfo();
+
+  const copyToClipboard = () => {
+    if (about) {
+      let formatted = `OS: ${about.operatingSystem}\nResources: ${about.resourceUtilization}\nnode: ${about.nodeJsVersion}\nbackstage: ${about.backstageVersion}\nDependencies:\n`;
+      const deps = about.dependencies;
+      for (const key in deps) {
+        if (Object.prototype.hasOwnProperty.call(deps, key)) {
+          formatted = `${formatted}    ${deps[key].name}: ${deps[key].versions}\n`;
+        }
+      }
+      window.navigator.clipboard.writeText(formatted);
+
+      // Set infoCopied to true after copying
+      setInfoCopied(true);
+    }
+  };
+
+  if (loading) {
+    return <Progress />;
+  } else if (error) {
+    return <Alert severity="error">{error.message}</Alert>;
+  }
+
+  return (
+    <Box>
+      <Paper className={classes.paperStyle}>
+        <List className={classes.flexContainer}>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar>
+                <DeveloperBoardIcon />
+              </Avatar>
+            </ListItemAvatar>
+            <ListItemText
+              primary="Operating System"
+              secondary={about?.operatingSystem}
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar>
+                <MemoryIcon />
+              </Avatar>
+            </ListItemAvatar>
+            <ListItemText
+              primary="Resource utilization"
+              secondary={about?.resourceUtilization}
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar>
+                <DescriptionIcon />
+              </Avatar>
+            </ListItemAvatar>
+            <ListItemText
+              primary="NodeJS Version"
+              secondary={about?.nodeJsVersion}
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar>
+                <BackstageLogoIcon />
+              </Avatar>
+            </ListItemAvatar>
+            <ListItemText
+              primary="Backstage Version"
+              secondary={about?.backstageVersion}
+            />
+          </ListItem>
+        </List>
+        <Divider orientation="vertical" variant="middle" flexItem />
+        <Button
+          onClick={copyToClipboard}
+          className={classes.copyButton}
+          startIcon={<FileCopyIcon />}
+        >
+          Copy Info to Clipboard
+        </Button>
+      </Paper>
+      <InfoDependenciesTable infoDependencies={about?.dependencies} />
+
+      {/* Render message if info is copied */}
+      {infoCopied && (
+        <Alert className={classes.infoCopiedMessage} severity="success">
+          Info copied to clipboard!
+        </Alert>
+      )}
+    </Box>
+  );
+};
