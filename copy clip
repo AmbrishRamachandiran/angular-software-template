@@ -1,145 +1,134 @@
-import React, { useState } from 'react';
-import { Progress } from '@backstage/core-components';
-import Alert from '@material-ui/lab/Alert';
-import Button from '@material-ui/core/Button';
-import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
-import {
-  Avatar,
-  Box,
-  Divider,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Paper,
-} from '@material-ui/core';
-import DescriptionIcon from '@material-ui/icons/Description';
-import MemoryIcon from '@material-ui/icons/Memory';
-import DeveloperBoardIcon from '@material-ui/icons/DeveloperBoard';
-import BackstageLogoIcon from './BackstageLogoIcon';
-import FileCopyIcon from '@material-ui/icons/FileCopy';
-import { InfoDependenciesTable } from './InfoDependenciesTable';
-import { useInfo } from '../../../hooks';
-import { DevToolsInfo } from '@backstage/plugin-devtools-common';
-
-const useStyles = makeStyles((theme: Theme) =>
-  createStyles({
-    paperStyle: {
-      display: 'flex',
-      marginBottom: theme.spacing(2),
-    },
-    flexContainer: {
-      display: 'flex',
-      flexDirection: 'row',
-      padding: 0,
-    },
-    copyButton: {
-      float: 'left',
-      margin: theme.spacing(2),
-    },
-    infoCopiedMessage: {
-      marginTop: theme.spacing(2),
-      color: '#4caf50', // Green color for success message
-    },
-  }),
-);
-
-export const InfoContent = () => {
-  const classes = useStyles();
-  const [infoCopied, setInfoCopied] = useState(false);
-  const { about, loading, error } = useInfo();
-
-  const copyToClipboard = () => {
-    if (about) {
-      let formatted = `OS: ${about.operatingSystem}\nResources: ${about.resourceUtilization}\nnode: ${about.nodeJsVersion}\nbackstage: ${about.backstageVersion}\nDependencies:\n`;
-      const deps = about.dependencies;
-      for (const key in deps) {
-        if (Object.prototype.hasOwnProperty.call(deps, key)) {
-          formatted = `${formatted}    ${deps[key].name}: ${deps[key].versions}\n`;
-        }
-      }
-      window.navigator.clipboard.writeText(formatted);
-
-      // Set infoCopied to true after copying
-      setInfoCopied(true);
-    }
-  };
-
-  if (loading) {
-    return <Progress />;
-  } else if (error) {
-    return <Alert severity="error">{error.message}</Alert>;
-  }
-
-  return (
-    <Box>
-      <Paper className={classes.paperStyle}>
-        <List className={classes.flexContainer}>
-          <ListItem>
-            <ListItemAvatar>
-              <Avatar>
-                <DeveloperBoardIcon />
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary="Operating System"
-              secondary={about?.operatingSystem}
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemAvatar>
-              <Avatar>
-                <MemoryIcon />
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary="Resource utilization"
-              secondary={about?.resourceUtilization}
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemAvatar>
-              <Avatar>
-                <DescriptionIcon />
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary="NodeJS Version"
-              secondary={about?.nodeJsVersion}
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemAvatar>
-              <Avatar>
-                <BackstageLogoIcon />
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary="Backstage Version"
-              secondary={about?.backstageVersion}
-            />
-          </ListItem>
-        </List>
-        <Divider orientation="vertical" variant="middle" flexItem />
-        <Button
-          onClick={copyToClipboard}
-          className={classes.copyButton}
-          startIcon={<FileCopyIcon />}
-          disabled={infoCopied} // Disable the button after info is copied
-        >
-          {infoCopied ? 'Info Copied!' : 'Copy Info to Clipboard'}
-        </Button>
-      </Paper>
-      <InfoDependenciesTable infoDependencies={about?.dependencies} />
-
-      {/* Render message if info is copied */}
-      {infoCopied && (
-        <Alert className={classes.infoCopiedMessage} severity="success">
-          Info copied to clipboard!
-        </Alert>
-      )}
-    </Box>
-  );
-};
-
-njn
+	1.	What does PR stand for in the context of open source development?
+a) Project Request
+b) Pull Request
+c) Peer Review
+d) Program Requirement
+	2.	What is the purpose of a pull request (PR) in a version control system like Git?
+a) To delete code
+b) To propose changes
+c) To submit bug reports
+d) To create branches
+	3.	How do you initiate a pull request on GitHub?
+a) By clicking the “Fork” button
+b) By sending an email to the project maintainer
+c) By clicking the “New Pull Request” button
+d) By leaving comments on the code
+	4.	What is the difference between a fork and a clone in Git?
+a) They are the same thing
+b) A fork creates a copy on the remote server, while a clone creates a copy on your local machine
+c) A clone creates a copy on the remote server, while a fork creates a copy on your local machine
+d) A fork creates a copy of the entire repository, while a clone only copies a specific branch
+	5.	What is the purpose of a commit message in Git?
+a) To describe the changes made in a commit
+b) To criticize other developers’ work
+c) To request code reviews
+d) To document the entire project history
+	6.	How can one contribute to an open-source project besides coding?
+a) By writing documentation
+b) By designing logos and graphics
+c) By translating the project into other languages
+d) All of the above
+	7.	What is the role of code review in the contribution process?
+a) To find and fix bugs
+b) To ensure code quality and adherence to project standards
+c) To create new features
+d) To document the project
+	8.	Name one popular platform for hosting open-source projects.
+a) GitKraken
+b) Bitbucket
+c) Subversion
+d) Microsoft Excel
+	9.	What is a merge conflict, and how can it be resolved in Git?
+a) A disagreement between developers that cannot be resolved
+b) When two branches cannot be merged automatically due to conflicting changes
+c) When a pull request is rejected by the project maintainer
+d) When code fails to compile
+	10.	How can developers find open-source projects to contribute to?
+a) By searching on GitHub or other project hosting platforms
+b) By asking friends and colleagues for recommendations
+c) By attending open-source conferences and meetups
+d) All of the above
+	11.	What is the purpose of the “git clone” command in Git?
+a) To create a new branch
+b) To copy a repository from a remote server to your local machine
+c) To merge branches
+d) To delete a repository
+	12.	What does the term “forking a repository” mean in Git?
+a) Creating a copy of a repository on your local machine
+b) Creating a personal copy of someone else’s repository on a remote server
+c) Merging two repositories together
+d) Deleting a repository
+	13.	What is a “README.md” file commonly used for in open-source projects?
+a) Storing user data
+b) Providing information and instructions about the project
+c) Executing code
+d) Testing purposes
+	14.	What is the purpose of a “code of conduct” in open-source projects?
+a) To enforce strict coding standards
+b) To establish expected behavior and guidelines for contributors
+c) To automatically review code changes
+d) To restrict access to the repository
+	15.	What is a “git push” used for in Git?
+a) To delete code from the repository
+b) To upload local repository changes to a remote repository
+c) To create a new branch
+d) To merge branches together
+	16.	How can one sign their commits in Git?
+a) By physically signing a piece of paper
+b) By using a GPG (GNU Privacy Guard) key to sign commits
+c) By adding a comment to the commit message
+d) By emailing the commit to the project maintainer
+	17.	What is the purpose of signing commits in open-source projects?
+a) To make them more visible in the repository
+b) To verify the authenticity and integrity of the commit
+c) To automatically merge them into the main branch
+d) To increase the commit’s file size
+	18.	What does the acronym “CLA” stand for in the context of open-source contributions?
+a) Commit Level Agreement
+b) Central Licensing Authority
+c) Contributor License Agreement
+d) Codebase Language Agreement
+	19.	How can one contribute to open-source projects without writing code?
+a) By reporting bugs and issues
+b) By creating new features
+c) By signing commits
+d) By forking repositories
+	20.	What is the purpose of continuous integration (CI) in open-source projects?
+a) To maintain project secrecy
+b) To automatically build and test code changes
+c) To restrict access to the repository
+d) To manually review code changes
+	21.	Which command is used to stage changes for a commit in Git?
+a) git branch
+b) git commit
+c) git add
+d) git merge
+	22.	What is the Git command to create a new branch?
+a) git fork
+b) git branch
+c) git merge
+d) git clone
+	23.	What is the purpose of the “git pull” command in Git?
+a) To delete local changes
+b) To merge changes from the remote repository into your local repository
+c) To create a new branch
+d) To push changes to the remote repository
+	24.	What is the difference between “git merge” and “git rebase”?
+a) They are the same command
+b) Git merge combines changes from one branch into another, while git rebase applies the changes of one branch on top of another
+c) Git merge applies changes of one branch on top of another, while git rebase combines changes from one branch into another
+d) Git merge is used for creating new branches, while git rebase is used for merging branches
+	25.	What is the purpose of the “git log” command in Git?
+a) To delete commit history
+b) To view commit history
+c) To merge branches
+d) To create new branches
+	26.	What is a “gitignore” file used for in Git?
+a) To track all files in a repository
+b) To specify intentionally untracked files to ignore
+c) To automatically merge conflicting files
+d) To restrict access to the repository
+	27.	How can one revert to a previous commit in Git?
+a) By deleting the commit
+b) By ignoring the commit
+c) **By using the “git checkout
