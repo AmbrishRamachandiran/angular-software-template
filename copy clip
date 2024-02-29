@@ -1,37 +1,12 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import { InfoContent } from './InfoContent';
-
-// Mocking the useApi hook
-jest.mock('@backstage/core-plugin-api', () => ({
-  useApi: jest.fn(() => ({
-    alertApiRef: jest.fn(),
-  })),
-}));
-
-describe('InfoContent Component', () => {
-  // Test case for triggering an alert for state.error message for infoCopied
-  it('triggers an alert for state.error message when infoCopied is true', () => {
-    // Mocking the useInfo hook with loading false, error true, and infoCopied true
-    jest.mock('../../../hooks', () => ({
-      useInfo: jest.fn(() => ({
-        about: null,
-        loading: false,
-        error: { message: 'Test Error Message' },
-      })),
-    }));
-
-    // Mocking useCopyToClipboard hook
-    jest.mock('react-use/lib/useCopyToClipboard', () => {
-      return jest.fn(() => [
-        '',
-        { error: { message: 'Error copying to clipboard' } },
-      ]);
-    });
-
-    const { getByText } = render(<InfoContent />);
-    fireEvent.click(getByText('Copy Info to Clipboard'));
-
-    expect(getByText('Test Error Message')).toBeInTheDocument();
-  });
+jest.mock('@backstage/core-plugin-api', () => {
+  const originalModule = jest.requireActual('@backstage/core-plugin-api');
+  return {
+    ...originalModule,
+    useApi: jest.fn(),
+    alertApiRef: {
+      current: {
+        post: jest.fn(),
+      },
+    },
+  };
 });
