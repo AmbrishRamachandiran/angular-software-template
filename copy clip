@@ -2,11 +2,9 @@ jest.mock('@backstage/core-plugin-api', () => {
   const originalModule = jest.requireActual('@backstage/core-plugin-api');
   return {
     ...originalModule,
-    useApi: jest.fn(),
-    alertApiRef: {
-      current: {
-        post: jest.fn(),
-      },
-    },
+    useApi: jest.fn(() => ({
+      getInfo: jest.fn(), // Mock the getInfo function
+    })),
+    devToolsApiRef: {}, // Mock devToolsApiRef
   };
 });
