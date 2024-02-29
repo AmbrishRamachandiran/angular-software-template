@@ -1,45 +1,37 @@
-34.	What role does documentation play in open-source projects?
-a) It helps users and developers understand how to use and contribute to the project
-b) It is optional and not necessary for open-source projects
-c) It is only useful for closed-source projects
-d) It serves as a legal document for licensing purposes
-	35.	How can developers contribute to documentation in open-source projects?
-a) By writing tutorials and guides
-b) By fixing errors and updating outdated information
-c) By translating documentation into different languages
-d) All of the above
-	36.	What is the significance of licensing in open-source projects?
-a) It restricts access to the project’s source code
-b) It ensures that only paid users can access the project
-c) It defines the terms under which the project can be used, modified, and distributed
-d) It has no impact on open-source projects
-	37.	How can developers verify the licensing of an open-source project?
-a) By assuming all projects have the same license
-b) By checking the project’s website
-c) By examining the project’s license file or documentation
-d) By asking the project’s contributors via email
-	38.	What is the purpose of issue trackers in open-source projects?
-a) To hide bugs and feature requests from contributors
-b) To track the progress of individual contributors
-c) To manage and prioritize bugs, feature requests, and other tasks
-d) To prevent contributors from reporting issues
-	39.	How can developers contribute to issue management in open-source projects?
-a) By ignoring reported issues
-b) By closing issues without resolution
-c) By reproducing reported issues, providing additional information, and suggesting fixes
-d) By creating duplicate issues
-	40.	What is the role of communication channels (such as mailing lists, forums, or chat platforms) in open-source projects?
-a) To discourage collaboration among contributors
-b) To restrict access to project information
-c) To facilitate discussions, provide support, and coordinate contributions
-d) To promote secrecy within the project
-	41.	How can developers effectively communicate within open-source communities?
-a) By using rude or disrespectful language
-b) By ignoring community guidelines and norms
-c) By being respectful, constructive, and adhering to community guidelines
-d) By promoting personal agendas over community interests
-	42.	What is the role of mentorship programs in open-source projects?
-a) To discourage new contributors from joining the project
-b) To limit access to project resources
-c) To provide guidance, support, and encouragement to new contributors
-d) To prioritize experienced contributors over newcomers
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react';
+import { InfoContent } from './InfoContent';
+
+// Mocking the useApi hook
+jest.mock('@backstage/core-plugin-api', () => ({
+  useApi: jest.fn(() => ({
+    alertApiRef: jest.fn(),
+  })),
+}));
+
+describe('InfoContent Component', () => {
+  // Test case for triggering an alert for state.error message for infoCopied
+  it('triggers an alert for state.error message when infoCopied is true', () => {
+    // Mocking the useInfo hook with loading false, error true, and infoCopied true
+    jest.mock('../../../hooks', () => ({
+      useInfo: jest.fn(() => ({
+        about: null,
+        loading: false,
+        error: { message: 'Test Error Message' },
+      })),
+    }));
+
+    // Mocking useCopyToClipboard hook
+    jest.mock('react-use/lib/useCopyToClipboard', () => {
+      return jest.fn(() => [
+        '',
+        { error: { message: 'Error copying to clipboard' } },
+      ]);
+    });
+
+    const { getByText } = render(<InfoContent />);
+    fireEvent.click(getByText('Copy Info to Clipboard'));
+
+    expect(getByText('Test Error Message')).toBeInTheDocument();
+  });
+});
