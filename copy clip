@@ -1,10 +1,34 @@
-jest.mock('@backstage/core-plugin-api', () => {
-  const originalModule = jest.requireActual('@backstage/core-plugin-api');
-  return {
-    ...originalModule,
-    useApi: jest.fn(() => ({
-      getInfo: jest.fn(), // Mock the getInfo function
-    })),
-    devToolsApiRef: {}, // Mock devToolsApiRef
-  };
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react';
+import { InfoContent } from './InfoContent'; // Adjust the import path as necessary
+import { alertApiRef } from '@backstage/core-plugin-api';
+
+// Mock the useInfo hook to simulate an error state
+jest.mock('../../../hooks', () => ({
+ useInfo: () => ({
+    about: null,
+    loading: false,
+    error: { message: 'An error occurred' },
+ }),
+}));
+
+// Mock the useApi hook to simulate the alertApiRef
+jest.mock('@backstage/core-plugin-api', () => ({
+ useApi: () => ({
+    post: jest.fn(),
+ }),
+}));
+
+describe('InfoContent', () => {
+ it('displays error state and calls alertApi with correct message and severity', () => {
+    const { getByText } = render(<InfoContent />);
+    expect(getByText('An error occurred')).toBeInTheDocument();
+
+    // Verify that alertApi.post was called with the correct message and severity
+    const alertApi = useApi(alertApiRef);
+    expect(alertApi.post).toHaveBeenCalledWith({
+      message: 'An error occurred',
+      severity: 'error',
+    });
+ });
 });
