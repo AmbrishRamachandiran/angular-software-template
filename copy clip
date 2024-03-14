@@ -1,34 +1,107 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import { InfoContent } from './InfoContent'; // Adjust the import path as necessary
-import { alertApiRef } from '@backstage/core-plugin-api';
+import React, { useMemo, useState } from 'react';
+import { Box, makeStyles } from '@material-ui/core';
+import CodeMirror from '@uiw/react-codemirror';
+import { showPanel } from '@codemirror/view';
+import { StreamLanguage } from '@codemirror/language';
+import { yaml as yamlSupport } from '@codemirror/legacy-modes/mode/yaml';
+import { useKeyboardEvent } from '@react-hookz/web';
+import { useCopyToClipboard } from 'react-use'; // Import useCopyToClipboard
 
-// Mock the useInfo hook to simulate an error state
-jest.mock('../../../hooks', () => ({
- useInfo: () => ({
-    about: null,
-    loading: false,
-    error: { message: 'An error occurred' },
- }),
+const useStyles = makeStyles(theme => ({
+ container: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    minHeight: '400px',
+ },
+ codeMirror: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+ },
+ infoPanel: {
+    color: theme.palette.info.main,
+    lineHeight: 2,
+    margin: theme.spacing(0, 1),
+ },
+ copyButton: { // Style for the copy button
+    position: 'absolute',
+    top: '50%',
+    right: '10px',
+    transform: 'translateY(-50%)',
+    cursor: 'pointer',
+ },
 }));
 
-// Mock the useApi hook to simulate the alertApiRef
-jest.mock('@backstage/core-plugin-api', () => ({
- useApi: () => ({
-    post: jest.fn(),
- }),
-}));
+type TemplateTextAreaProps = {
+ catalogYaml: string;
+ onChange: (value: string) => void;
+ onValidate: () => void;
+};
 
-describe('InfoContent', () => {
- it('displays error state and calls alertApi with correct message and severity', () => {
-    const { getByText } = render(<InfoContent />);
-    expect(getByText('An error occurred')).toBeInTheDocument();
+export const EntityTextArea = ({
+ catalogYaml,
+ onChange,
+ onValidate,
+}: TemplateTextAreaProps) => {
+ const classes = useStyles();
+ const [close, setClose] = useState(false);
+ const [showCopyButton, setShowCopyButton] = useState(false); // State to manage copy button visibility
+ const [copyToClipboard, { copied }] = useCopyToClipboard(); // Hook for clipboard functionality
 
-    // Verify that alertApi.post was called with the correct message and severity
-    const alertApi = useApi(alertApiRef);
-    expect(alertApi.post).toHaveBeenCalledWith({
-      message: 'An error occurred',
-      severity: 'error',
-    });
- });
-});
+ const panelExtension = useMemo(() => {
+    if (close) {
+      return showPanel.of(null);
+    }
+
+    const dom = document.createElement('div');
+    dom.classList.add(classes.infoPanel);
+    dom.textContent =
+      'To validate your catalog-info.yaml click on the "Validate" button or use "Ctrl + S" or "Ctrl + Enter"';
+    dom.onclick = () => setClose(true);
+    return showPanel.of(() => ({ dom, top: true }));
+ }, [classes, close]);
+
+ // Triggers a validation when Ctrl+S or Ctrl+Enter instead of default behavior
+ useKeyboardEvent(
+    e => (e.key === 's' || e.key === 'Enter') && (e.ctrlKey || e.metaKey),
+    e => {
+      e.preventDefault();
+      onValidate();
+    },
+ );
+
+ // Function to handle copy to clipboard
+ const handleCopy = () => {
+    copyToClipboard(catalogYaml);
+    setShowCopyButton(false); // Optionally hide the button after copying
+ };
+
+ return (
+    <Box className={classes.container}>
+      <CodeMirror
+        className={classes.codeMirror}
+        theme="dark"
+        height="100%"
+        extensions={[StreamLanguage.define(yamlSupport), panelExtension]}
+        value={catalogYaml}
+        onChange={onChange}
+        onKeyDownCapture={e => {
+          // Prevent new line if Ctrl + Enter was clicked
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) e.preventDefault();
+        }}
+      />
+      {showCopyButton && ( // Conditionally render the copy button
+        <button
+          className={classes.copyButton}
+          onClick={handleCopy}
+          title="Copy to clipboard"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      )}
+    </Box>
+ );
+};
