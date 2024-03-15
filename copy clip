@@ -5,53 +5,47 @@ import { showPanel } from '@codemirror/view';
 import { StreamLanguage } from '@codemirror/language';
 import { yaml as yamlSupport } from '@codemirror/legacy-modes/mode/yaml';
 import { useKeyboardEvent } from '@react-hookz/web';
-import { useCopyToClipboard } from 'react-use'; // Import useCopyToClipboard
+import { FileCopyOutlined, Done } from '@material-ui/icons';
+import { useCopyToClipboard } from 'react-use/lib/useCopyToClipboard';
 
 const useStyles = makeStyles(theme => ({
- container: {
+  container: {
     position: 'relative',
     width: '100%',
     height: '100%',
     minHeight: '400px',
- },
- codeMirror: {
+  },
+  codeMirror: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
- },
- infoPanel: {
+  },
+  infoPanel: {
     color: theme.palette.info.main,
     lineHeight: 2,
     margin: theme.spacing(0, 1),
- },
- copyButton: { // Style for the copy button
-    position: 'absolute',
-    top: '50%',
-    right: '10px',
-    transform: 'translateY(-50%)',
-    cursor: 'pointer',
- },
+  },
 }));
 
 type TemplateTextAreaProps = {
- catalogYaml: string;
- onChange: (value: string) => void;
- onValidate: () => void;
+  catalogYaml: string;
+  onChange: (value: string) => void;
+  onValidate: () => void;
 };
 
 export const EntityTextArea = ({
- catalogYaml,
- onChange,
- onValidate,
+  catalogYaml,
+  onChange,
+  onValidate,
 }: TemplateTextAreaProps) => {
- const classes = useStyles();
- const [close, setClose] = useState(false);
- const [showCopyButton, setShowCopyButton] = useState(false); // State to manage copy button visibility
- const [copyToClipboard, { copied }] = useCopyToClipboard(); // Hook for clipboard functionality
+  const classes = useStyles();
+  const [close, setClose] = useState(false);
+  const [showDoneIcon, setShowDoneIcon] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
 
- const panelExtension = useMemo(() => {
+  const panelExtension = useMemo(() => {
     if (close) {
       return showPanel.of(null);
     }
@@ -62,24 +56,24 @@ export const EntityTextArea = ({
       'To validate your catalog-info.yaml click on the "Validate" button or use "Ctrl + S" or "Ctrl + Enter"';
     dom.onclick = () => setClose(true);
     return showPanel.of(() => ({ dom, top: true }));
- }, [classes, close]);
+  }, [classes, close]);
 
- // Triggers a validation when Ctrl+S or Ctrl+Enter instead of default behavior
- useKeyboardEvent(
+  // Triggers a validation when Ctrl+S or Ctrl+Enter instead of default behavior
+  useKeyboardEvent(
     e => (e.key === 's' || e.key === 'Enter') && (e.ctrlKey || e.metaKey),
     e => {
       e.preventDefault();
       onValidate();
     },
- );
+  );
 
- // Function to handle copy to clipboard
- const handleCopy = () => {
+  const handleCopyToClipboard = () => {
     copyToClipboard(catalogYaml);
-    setShowCopyButton(false); // Optionally hide the button after copying
- };
+    setShowDoneIcon(true);
+    setTimeout(() => setShowDoneIcon(false), 1000); // Hide the "Done" icon after 1 second
+  };
 
- return (
+  return (
     <Box className={classes.container}>
       <CodeMirror
         className={classes.codeMirror}
@@ -93,15 +87,13 @@ export const EntityTextArea = ({
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) e.preventDefault();
         }}
       />
-      {showCopyButton && ( // Conditionally render the copy button
-        <button
-          className={classes.copyButton}
-          onClick={handleCopy}
-          title="Copy to clipboard"
-        >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+      <FileCopyOutlined
+        onClick={handleCopyToClipboard}
+        style={{ cursor: 'pointer', position: 'absolute', right: '10px', top: '10px' }}
+      />
+      {showDoneIcon && (
+        <Done style={{ position: 'absolute', right: '10px', top: '10px', color: 'green' }} />
       )}
     </Box>
- );
+  );
 };
