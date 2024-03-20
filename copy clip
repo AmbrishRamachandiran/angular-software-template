@@ -1,99 +1,54 @@
-import React, { useMemo, useState } from 'react';
-import { Box, makeStyles } from '@material-ui/core';
-import CodeMirror from '@uiw/react-codemirror';
-import { showPanel } from '@codemirror/view';
-import { StreamLanguage } from '@codemirror/language';
-import { yaml as yamlSupport } from '@codemirror/legacy-modes/mode/yaml';
-import { useKeyboardEvent } from '@react-hookz/web';
-import { FileCopyOutlined, Done } from '@material-ui/icons';
-import { useCopyToClipboard } from 'react-use/lib/useCopyToClipboard';
+catalog table :
 
-const useStyles = makeStyles(theme => ({
-  container: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-    minHeight: '400px',
-  },
-  codeMirror: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  infoPanel: {
-    color: theme.palette.info.main,
-    lineHeight: 2,
-    margin: theme.spacing(0, 1),
-  },
-}));
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 
-type TemplateTextAreaProps = {
-  catalogYaml: string;
-  onChange: (value: string) => void;
-  onValidate: () => void;
-};
 
-export const EntityTextArea = ({
-  catalogYaml,
-  onChange,
-  onValidate,
-}: TemplateTextAreaProps) => {
-  const classes = useStyles();
-  const [close, setClose] = useState(false);
-  const [showDoneIcon, setShowDoneIcon] = useState(false);
-  const [, copyToClipboard] = useCopyToClipboard();
-
-  const panelExtension = useMemo(() => {
-    if (close) {
-      return showPanel.of(null);
-    }
-
-    const dom = document.createElement('div');
-    dom.classList.add(classes.infoPanel);
-    dom.textContent =
-      'To validate your catalog-info.yaml click on the "Validate" button or use "Ctrl + S" or "Ctrl + Enter"';
-    dom.onclick = () => setClose(true);
-    return showPanel.of(() => ({ dom, top: true }));
-  }, [classes, close]);
-
-  // Triggers a validation when Ctrl+S or Ctrl+Enter instead of default behavior
-  useKeyboardEvent(
-    e => (e.key === 's' || e.key === 'Enter') && (e.ctrlKey || e.metaKey),
-    e => {
-      e.preventDefault();
-      onValidate();
+createSpecTargetsColumn(): TableColumn<CatalogTableRow> {
+ return {
+    title: 'Targets',
+    field: 'entity.spec.targets',
+    customFilterAndSearch: (query, row) => {
+      let targets: JsonArray = [];
+      if (
+        row.entity?.spec?.targets &&
+        Array.isArray(row.entity?.spec?.targets)
+      ) {
+        targets = row.entity?.spec?.targets;
+      } else if (row.entity?.spec?.target) {
+        targets = [row.entity?.spec?.target];
+      }
+      return targets
+        .join(', ')
+        .toLocaleUpperCase('en-US')
+        .includes(query.toLocaleUpperCase('en-US'));
     },
-  );
+    render: ({ entity }) => (
+      <>
+        {(entity?.spec?.targets || entity?.spec?.target) && (
+          <Tooltip title={(
+            (entity!.spec!.targets as JsonArray) || [entity.spec.target]
+          ).join(', ')} placement="bottom-start">
+            <Typography noWrap>{
+              (entity!.spec!.targets as JsonArray) || [entity.spec.target]
+            }</Typography>
+          </Tooltip>
+        )}
+      </>
+    ),
+ };
+},
 
-  const handleCopyToClipboard = () => {
-    copyToClipboard(catalogYaml);
-    setShowDoneIcon(true);
-    setTimeout(() => setShowDoneIcon(false), 1000); // Hide the "Done" icon after 1 second
-  };
 
-  return (
-    <Box className={classes.container}>
-      <CodeMirror
-        className={classes.codeMirror}
-        theme="dark"
-        height="100%"
-        extensions={[StreamLanguage.define(yamlSupport), panelExtension]}
-        value={catalogYaml}
-        onChange={onChange}
-        onKeyDownCapture={e => {
-          // Prevent new line if Ctrl + Enter was clicked
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) e.preventDefault();
-        }}
-      />
-      <FileCopyOutlined
-        onClick={handleCopyToClipboard}
-        style={{ cursor: 'pointer', position: 'absolute', right: '10px', top: '10px' }}
-      />
-      {showDoneIcon && (
-        <Done style={{ position: 'absolute', right: '10px', top: '10px', color: 'green' }} />
-      )}
-    </Box>
-  );
-};
+createMetadataDescriptionColumn(): TableColumn<CatalogTableRow> {
+ return {
+    title: 'Description',
+    field: 'entity.metadata.description',
+    render: ({ entity }) => (
+      <Tooltip title={entity.metadata.description} placement="bottom-start">
+        <Typography noWrap>{entity.metadata.description}</Typography>
+      </Tooltip>
+    ),
+    width: 'auto',
+ };
+},
