@@ -1,20 +1,18 @@
-Title: Driving Innovation: Key Contributions to Backstage
+Title: Recognized Excellence: Awards and Achievements
 
-Key Contributions:
+Awards and Achievements:
 
-	•	Plugins Enhancements:
-	•	Shortcuts Plugin: Implemented a feature to limit the use of duplicate shortcut titles and URLs, ensuring data integrity and adhering to UI standards.
-	•	Playlist Plugin: Introduced a similar functionality to prevent duplication of playlist titles and URLs, enhancing the user experience.
-	•	Bazaar Plugin: Implemented a feature to restrict the use of duplicate titles and URLs when creating new Bazaar projects, promoting data consistency and usability.
-	•	Forms Enhancement:
-	•	Implemented feature changes across all plugin forms to prevent duplication of data, improving usability and maintaining data integrity.
-	•	Ensured adherence to UI standards and best practices to provide a seamless user experience across Backstage plugins.
-	•	Alert API Integration:
-	•	Added alert API popups across various pages within the Backstage UI to provide real-time feedback to users during CRUD operations.
-	•	Alerts include error, success, and warning messages, enhancing user engagement and facilitating smoother interactions with the platform.
+	•	Infosys Rise Awards: Tech Domain Maestro
+	•	Recognized as a Tech Domain Maestro at the Infosys Rise Awards, highlighting excellence and expertise in the technology domain.
+	•	CodeCon Event Runner-Up
+	•	Secured the runner-up position at the prestigious CodeCon event, showcasing exceptional coding skills and innovation.
+	•	Hacktoberfest Winner
+	•	Acknowledged as one of the winners in the renowned Hacktoberfest event, demonstrating dedication and contributions to open source projects.
+	•	Marvellous Mentor Appreciation
+	•	Received the Marvellous Mentor Appreciation from teammates for outstanding mentorship and guidance within the Backstage community.
 
 Impact:
 
-	•	Improved User Experience: These enhancements contribute to a more intuitive and user-friendly experience within the Backstage ecosystem.
-	•	Data Integrity: By preventing duplication of data, the platform ensures consistency and reliability for users across different plugins.
-	•	Enhanced Communication: The integration of alert API popups enables effective communication with users, providing timely feedback and guidance during interactions.
+	•	Industry Recognition: These awards and achievements reflect industry recognition of your talent, expertise, and contributions to the technology community.
+	•	Inspiration and Motivation: Serve as inspiration and motivation for peers and aspiring technologists, encouraging continued excellence and innovation.
+	•	Contribution to Community: Highlight the significance of your contributions to open source projects and mentorship within the technology ecosystem.
