@@ -1,54 +1,11 @@
-catalog table :
+This jQuery code seems to be manipulating datepicker options based on some dynamic screen name. Let's break it down:
 
-import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
+1. `$("#Payment_" + apz.app.global.screenName + "_SchedpayDate").datepicker('option', 'firstDay', 0);`
+   - This line selects an element with an ID constructed using the concatenation of "Payment_", a dynamic screen name (`apz.app.global.screenName`), and "_SchedpayDate".
+   - It then sets the `firstDay` option of the datepicker associated with that element to 0 (Sunday).
 
+2. `$("#Payment_" + apz.app.global.screenName + "_SchedpayDate").datepicker('option', 'dayNamesMin', ["S", "M", "Т", "W", "T", "F", "S"]);`
+   - This line does something similar but sets the `dayNamesMin` option of the datepicker.
+   - It sets the abbreviated day names to ["S", "M", "Т", "W", "T", "F", "S"].
 
-createSpecTargetsColumn(): TableColumn<CatalogTableRow> {
- return {
-    title: 'Targets',
-    field: 'entity.spec.targets',
-    customFilterAndSearch: (query, row) => {
-      let targets: JsonArray = [];
-      if (
-        row.entity?.spec?.targets &&
-        Array.isArray(row.entity?.spec?.targets)
-      ) {
-        targets = row.entity?.spec?.targets;
-      } else if (row.entity?.spec?.target) {
-        targets = [row.entity?.spec?.target];
-      }
-      return targets
-        .join(', ')
-        .toLocaleUpperCase('en-US')
-        .includes(query.toLocaleUpperCase('en-US'));
-    },
-    render: ({ entity }) => (
-      <>
-        {(entity?.spec?.targets || entity?.spec?.target) && (
-          <Tooltip title={(
-            (entity!.spec!.targets as JsonArray) || [entity.spec.target]
-          ).join(', ')} placement="bottom-start">
-            <Typography noWrap>{
-              (entity!.spec!.targets as JsonArray) || [entity.spec.target]
-            }</Typography>
-          </Tooltip>
-        )}
-      </>
-    ),
- };
-},
-
-
-createMetadataDescriptionColumn(): TableColumn<CatalogTableRow> {
- return {
-    title: 'Description',
-    field: 'entity.metadata.description',
-    render: ({ entity }) => (
-      <Tooltip title={entity.metadata.description} placement="bottom-start">
-        <Typography noWrap>{entity.metadata.description}</Typography>
-      </Tooltip>
-    ),
-    width: 'auto',
- };
-},
+So, in summary, the code dynamically configures the datepicker options based on the screen name provided.
