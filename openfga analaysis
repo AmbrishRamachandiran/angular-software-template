@@ -1,0 +1,227 @@
+To convert the provided conditional-based example into an OpenFGA model, you need to define entities, relationships, and policies that incorporate the conditional logic. Here’s how to set it up:
+
+### 1. Define the Entities
+The primary entities are `user` and `catalog-entity`.
+
+### 2. Define the Relationships
+The relationships to define are:
+- An admin can delete the catalog entity.
+- A user can delete the catalog entity if they are an owner.
+
+### 3. Create the Model
+Here's the JSON for the model:
+
+```json
+{
+  "model": {
+    "relationships": {
+      "user": {
+        "relations": {
+          "admin": {
+            "users": [
+              {
+                "userset": {
+                  "this": {}
+                }
+              }
+            ]
+          },
+          "group_member": {
+            "users": [
+              {
+                "userset": {
+                  "this": {}
+                }
+              }
+            ]
+          }
+        }
+      },
+      "catalog-entity": {
+        "relations": {
+          "owner": {
+            "users": [
+              {
+                "userset": {
+                  "relation": {
+                    "namespace": "user",
+                    "name": "group_member"
+                  }
+                }
+              }
+            ]
+          },
+          "deleter": {
+            "users": [
+              {
+                "userset": {
+                  "union": {
+                    "sets": [
+                      {
+                        "relation": {
+                          "namespace": "user",
+                          "name": "admin"
+                        }
+                      },
+                      {
+                        "relation": {
+                          "namespace": "catalog-entity",
+                          "name": "owner"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### 4. Define the Policies
+Define a policy that allows a user to delete the catalog entity if they are an admin or the owner:
+
+```json
+{
+  "policies": [
+    {
+      "name": "catalog_entity_delete",
+      "target": {
+        "type": "catalog-entity"
+      },
+      "condition": {
+        "rel": "deleter",
+        "operator": "in",
+        "value": "user"
+      }
+    }
+  ]
+}
+```
+
+### 5. Implement the Model in Your Application
+Integrate OpenFGA with your application to enforce this policy. Here’s an example in pseudocode:
+
+```python
+def check_permission(user, action, resource):
+    if action == "delete" and resource == "catalog-entity":
+        return openfga.check_permission(user, "deleter", resource)
+    else:
+        return False
+```
+
+### 6. Test the Model
+Create test users, assign relationships, and verify the access control.
+
+```python
+# Create users
+admin_user = {"id": "admin_user"}
+owner_user = {"id": "owner_user"}
+regular_user = {"id": "regular_user"}
+
+# Create catalog entity
+catalog_entity = {"id": "catalog-entity"}
+
+# Assign relationships
+openfga.assign_relationship("admin", admin_user, "user")
+openfga.assign_relationship("group_member", owner_user, "user")
+openfga.assign_relationship("owner", owner_user, catalog_entity)
+
+# Check permissions
+print(check_permission(admin_user, "delete", "catalog-entity"))  # True
+print(check_permission(owner_user, "delete", "catalog-entity"))  # True
+print(check_permission(regular_user, "delete", "catalog-entity")) # False
+```
+
+### Full JSON Example
+Here's the full JSON configuration for the model:
+
+```json
+{
+  "model": {
+    "relationships": {
+      "user": {
+        "relations": {
+          "admin": {
+            "users": [
+              {
+                "userset": {
+                  "this": {}
+                }
+              }
+            ]
+          },
+          "group_member": {
+            "users": [
+              {
+                "userset": {
+                  "this": {}
+                }
+              }
+            ]
+          }
+        }
+      },
+      "catalog-entity": {
+        "relations": {
+          "owner": {
+            "users": [
+              {
+                "userset": {
+                  "relation": {
+                    "namespace": "user",
+                    "name": "group_member"
+                  }
+                }
+              }
+            ]
+          },
+          "deleter": {
+            "users": [
+              {
+                "userset": {
+                  "union": {
+                    "sets": [
+                      {
+                        "relation": {
+                          "namespace": "user",
+                          "name": "admin"
+                        }
+                      },
+                      {
+                        "relation": {
+                          "namespace": "catalog-entity",
+                          "name": "owner"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "policies": [
+    {
+      "name": "catalog_entity_delete",
+      "target": {
+        "type": "catalog-entity"
+      },
+      "condition": {
+        "rel": "deleter",
+        "operator": "in",
+        "value": "user"
+      }
+    }
+  ]
+}
+```
+
+This model ensures that only users with the `admin` relationship or those who are owners of the catalog entity can delete it.
