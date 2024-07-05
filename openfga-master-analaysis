@@ -1,3 +1,7 @@
+policy.ts
+
+// packages/backend/src/policy.ts
+
 import {
   AuthorizeResult,
   PolicyDecision,
@@ -45,6 +49,7 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     return { result: AuthorizeResult.ALLOW };
   }
 }
+
 
 
 
@@ -99,5 +104,31 @@ export async function sendPermissionRequest(entityName: string, action: string, 
   permissionResponse = data;
   return data;
 }
+
+
+
+module.ts
+
+// packages/backend/src/module.ts
+
+import { AOpenFgaCatalogPolicy } from './policy';
+import { createBackendModule } from '@backstage/backend-plugin-api';
+import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
+import { Config } from '@backstage/config';
+
+export const permissionModuleACatalogPolicy = createBackendModule({
+  pluginId: 'permission',
+  moduleId: 'a-name-policy',
+  register(reg) {
+    reg.registerInit({
+      deps: { policy: policyExtensionPoint, config: Config },
+      async init({ policy, config }) {
+        policy.setPolicy(new AOpenFgaCatalogPolicy(config));
+      },
+    });
+  },
+});
+
+
 
 
