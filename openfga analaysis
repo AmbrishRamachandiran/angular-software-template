@@ -265,3 +265,11 @@ alert message
 "Revoked permission for user to read not delete the entity" in red color
 
 if response is failed the print response.message in alert in red color
+
+
+
+
+const entityNames = items.map((entity) => entity.metadata.name);
+console.log(entityNames)
+
+the console prints :  ['example-website', 'examples', 'example-nodejs-template', 'guest', 'generated-59f413838c17f2fee12e3a95d80969c1c3ac7fff', 'guests', 'generated-55b6b127e90a03f9410397b2110150349ec2d3d0', 'example-grpc-api', 'generated-352dec834c47a0952b11c48242c4279101f1d67f']
