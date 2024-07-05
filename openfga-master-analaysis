@@ -7,7 +7,6 @@ import Alert from '@material-ui/lab/Alert';
 import { useApi, identityApiRef } from '@backstage/core-plugin-api';
 import { CATALOG_FILTER_EXISTS, catalogApiRef } from '@backstage/plugin-catalog-react';
 
-const entityOptions = ['acme', 'test', 'entitytest', 'acmetest', 'example-website'];
 const actionOptions = ['Read', 'Delete'];
 const accessTypeOptions = ['owner', 'viewer'];
 
@@ -25,42 +24,45 @@ const useStyles = makeStyles({
 
 export const OpenfgaCatalogComponent = () => {
   const classes = useStyles();
-  const [entities, setEntities] = useState <any>([]);
-  const [user, setUser] = useState <any>('');
-  const [selectedEntity, setSelectedEntity] = useState(entityOptions[0]);
-  const [selectedAction, setSelectedAction] = useState(actionOptions[0]);
-  const [selectedAccessType, setSelectedAccessType] = useState(accessTypeOptions[0]);
-  const [allowMessage, setAllowMessage] = useState('');
-  const [denyMessage, setDenyMessage] = useState('');
-  const [policyMessage, setPolicyMessage] = useState('');
+  const [entities, setEntities] = useState<string[]>([]);
+  const [user, setUser] = useState<string>('');
+  const [selectedEntity, setSelectedEntity] = useState<string>('');
+  const [selectedAction, setSelectedAction] = useState<string>(actionOptions[0]);
+  const [selectedAccessType, setSelectedAccessType] = useState<string>(accessTypeOptions[0]);
+  const [allowMessage, setAllowMessage] = useState<string>('');
+  const [denyMessage, setDenyMessage] = useState<string>('');
+  const [policyMessage, setPolicyMessage] = useState<string>('');
   const catalogApi = useApi(catalogApiRef);
   const identityApi = useApi(identityApiRef);
 
-  const handleEntityChange = (event:any) => {
+  const handleEntityChange = (event: any) => {
     setSelectedEntity(event.target.value);
   };
 
-  const handleActionChange = (event:any) => {
+  const handleActionChange = (event: any) => {
     setSelectedAction(event.target.value);
   };
 
-  const handleAccessTypeChange = (event:any) => {
+  const handleAccessTypeChange = (event: any) => {
     setSelectedAccessType(event.target.value);
   };
 
   const fetchEntities = async () => {
     try {
-      const {items} = await catalogApi.getEntities({ 
+      const { items } = await catalogApi.getEntities({ 
         fields: ['metadata.name'],
         filter: {
-          'kind=component':
-            CATALOG_FILTER_EXISTS,
+          'kind=component': CATALOG_FILTER_EXISTS,
         },
       });
       const entityNames = items.map((entity) => entity.metadata.name);
-      const {ownershipEntityRefs} = await identityApi.getBackstageIdentity()
+      console.log(entityNames);
+      const { ownershipEntityRefs } = await identityApi.getBackstageIdentity();
       setUser(ownershipEntityRefs);
-      setEntities(entityNames); 
+      setEntities(entityNames);
+      if (entityNames.length > 0) {
+        setSelectedEntity(entityNames[0]);
+      }
     } catch (error) {
       console.error('Error fetching catalog entities:', error);
     }
@@ -112,7 +114,6 @@ export const OpenfgaCatalogComponent = () => {
   };
 
   return (
-    <>
     <Box sx={{ border: 1, borderRadius: 0, p: 2, bgcolor: 'cyan', display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
       <Box sx={{ width: '45%' }}>
         <Typography className={classes.info} variant="body2" gutterBottom>
@@ -129,7 +130,7 @@ export const OpenfgaCatalogComponent = () => {
               onChange={handleEntityChange}
               label="Select Entity"
             >
-              {entities.map((entityName:any) => (
+              {entities.map((entityName: string) => (
                 <MenuItem key={entityName} value={entityName}>
                   {entityName}
                 </MenuItem>
@@ -183,7 +184,7 @@ export const OpenfgaCatalogComponent = () => {
               onChange={handleEntityChange}
               label="Select Entity"
             >
-              {entities.map((entityName:any) => (
+              {entities.map((entityName: string) => (
                 <MenuItem key={entityName} value={entityName}>
                   {entityName}
                 </MenuItem>
@@ -226,7 +227,6 @@ export const OpenfgaCatalogComponent = () => {
         )}
       </Box>
     </Box>
-    </>
   );
 };
 
