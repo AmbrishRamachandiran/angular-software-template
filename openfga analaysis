@@ -1,162 +1,122 @@
-Iam creating a plugin in backstage which will control the backstage catalog permission policy :
+app.config.yaml:
 
-example it will control catalog delete permission for a user 
+app:
+  title: Scaffolded Backstage App
+  baseUrl: http://localhost:3000
 
-my plugin flow : component -> client.ts -> getting response from open fga -> component this is working flow 
+organization:
+  name: My Company
 
-need help flow: initially make policy.ts to be allow permission to delete but once plugin do some changes like 
-component  then trigger policy.ts also get response from client.ts into policy.ts 
+backend:
+  # Used for enabling authentication, secret is shared by all backend plugins
+  # See https://backstage.io/docs/auth/service-to-service-auth for
+  # information on the format
+  # auth:
+  #   keys:
+  #     - secret: ${BACKEND_SECRET}
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+    # Uncomment the following host directive to bind to specific interfaces
+    # host: 127.0.0.1
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+    # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
+    # Default Helmet Content-Security-Policy values can be removed by setting the key to false
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  # This is for local development only, it is not recommended to use this in production
+  # The production database configuration is stored in app-config.production.yaml
+  database:
+    client: better-sqlite3
+    connection: ':memory:'
+  # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
-please check my files :
+integrations:
+  github:
+    - host: github.com
+      # This is a Personal Access Token or PAT from GitHub. You can find out how to generate this token, and more information
+      # about setting up the GitHub integration here: https://backstage.io/docs/integrations/github/locations#configuration
+      token: ${GITHUB_TOKEN}
+    ### Example for how to add your GitHub Enterprise instance using the API:
+    # - host: ghe.example.net
+    #   apiBaseUrl: https://ghe.example.net/api/v3
+    #   token: ${GHE_TOKEN}
 
-component :
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Select, MenuItem, FormControl, FormLabel, Button } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import { sendPermissionRequest } from '../../client'; 
+proxy:
+  ### Example for how to add a proxy endpoint for the frontend.
+  ### A typical reason to do this is to handle HTTPS and CORS for internal services.
+  # endpoints:
+  #   '/test':
+  #     target: 'https://example.com'
+  #     changeOrigin: true
 
+# Reference documentation http://backstage.io/docs/features/techdocs/configuration
+# Note: After experimenting with basic setup, use CI/CD to generate docs
+# and an external cloud storage when deploying TechDocs for production use-case.
+# https://backstage.io/docs/features/techdocs/how-to-guides#how-to-migrate-from-techdocs-basic-to-recommended-deployment-approach
+techdocs:
+  builder: 'local' # Alternatives - 'external'
+  generator:
+    runIn: 'docker' # Alternatives - 'local'
+  publisher:
+    type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
 
-import { useApi, identityApiRef } from '@backstage/core-plugin-api';
-import { CATALOG_FILTER_EXISTS, catalogApiRef } from '@backstage/plugin-catalog-react';
+auth:
+  # see https://backstage.io/docs/auth/ to learn about auth providers
+  providers:
+    # See https://backstage.io/docs/auth/guest/provider
+    guest: {}
 
-const entityOptions = ['acme', 'test', 'entitytest', 'acmetest', 'example-website'];
-const actionOptions = ['Read', 'Delete'];
+scaffolder:
+  # see https://backstage.io/docs/features/software-templates/configuration for software template options
 
-const useStyles = makeStyles({
-  success: {
-    color: 'green',
-  },
-  danger: {
-    color: 'red',
-  },
-  info: {
-    color: 'blue',
-  },
-});
+catalog:
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow: [Component, System, API, Resource, Location]
+  locations:
+    # Local example data, file locations are relative to the backend process, typically `packages/backend`
+    - type: file
+      target: ../../examples/entities.yaml
 
-export const OpenfgaCatalogComponent = () => {
-  const classes = useStyles();
-  const [entities, setEntities] = useState([]);
-  const [user, setUser] = useState('');
-  const [selectedEntity, setSelectedEntity] = useState(entityOptions[0]);
-  const [selectedAction, setSelectedAction] = useState(actionOptions[0]);
-  const [allowMessage, setAllowMessage] = useState('');
-  const [denyMessage, setDenyMessage] = useState('');
-  const catalogApi = useApi(catalogApiRef);
-  const identityApi = useApi(identityApiRef);
+    # Local example template
+    - type: file
+      target: ../../examples/template/template.yaml
+      rules:
+        - allow: [Template]
 
-  const handleEntityChange = (event) => {
-    setSelectedEntity(event.target.value);
-  };
+    # Local example organizational data
+    - type: file
+      target: ../../examples/org.yaml
+      rules:
+        - allow: [User, Group]
 
-  const handleActionChange = (event) => {
-    setSelectedAction(event.target.value);
-  };
+    ## Uncomment these lines to add more example data
+    # - type: url
+    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
 
-  const fetchEntities = async () => {
-    try {
-      const {items} = await catalogApi.getEntities({ 
-        fields: ['metadata.name'],
-        filter: {
-          'kind=component':
-            CATALOG_FILTER_EXISTS,
-        },
-      });
-      const entityNames = items.map((entity) => entity.metadata.name);
-      const {ownershipEntityRefs} = await identityApi.getBackstageIdentity()
-      setUser(ownershipEntityRefs);
-      setEntities(entityNames); 
-    } catch (error) {
-      console.error('Error fetching catalog entities:', error);
-    }
-  };
+    ## Uncomment these lines to add an example org
+    # - type: url
+    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/acme-corp.yaml
+    #   rules:
+    #     - allow: [User, Group]
+    
+permission:
+  enabled: true
 
-  useEffect(() => {
-    fetchEntities();
-  }, []);
-
-  const handleActivatePolicy = async () => {
-    const response = await sendPermissionRequest(selectedEntity, selectedAction);
-    console.log(response)
-    if (response.allowed) {
-      setAllowMessage(`${user} Has permission to ${selectedAction} the ${selectedEntity}`);
-    } else {
-      setDenyMessage(`${user} Don't have permission to ${selectedAction} the ${selectedEntity}`);
-    }
-    setTimeout(() => {
-      setAllowMessage('');
-      setDenyMessage('');
-    }, 3000);
-  };
-
-  return (
-    <Box sx={{ border: 1, borderRadius: 0, p: 2, width: '100%' }}>
-      <Typography className={classes.info} variant="body2" gutterBottom>
-       CURRENT USER : {user}
-      </Typography>
-      <Typography variant="h6" gutterBottom>
-        CATALOG PERMISSION POLICY
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <FormControl fullWidth>
-          <FormLabel>Select Entity</FormLabel>
-          <Select
-            displayEmpty
-            value={selectedEntity}
-            onChange={handleEntityChange}
-            label="Select Entity"
-            sx={{ width: '100%' }}
-          >
-             {entities.map((entityName) => (
-              <MenuItem key={entityName} value={entityName}>
-                {entityName}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl fullWidth>
-          <FormLabel>Select Action</FormLabel>
-          <Select
-            displayEmpty
-            value={selectedAction}
-            onChange={handleActionChange}
-            label="Select Action"
-            sx={{ width: '100%' }}
-          >
-            {actionOptions.map((option) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-        <Button
-          className={classes.success}
-          variant="contained"
-          onClick={handleActivatePolicy}
-        >
-          Check Policy
-        </Button>
-      </Box>
-      {allowMessage && (
-        <Typography className={classes.success} variant="body2" sx={{ color: 'green' }}>
-          {allowMessage}
-        </Typography>
-      )}
-      {denyMessage && (
-        <Typography className={classes.danger} variant="body2" sx={{ color: 'red' }}>
-          {denyMessage}
-        </Typography>
-      )}
-    </Box>
-  );
-};
+openfga:
+  baseUrl: 'http://localhost:8080'  # Replace with your actual OpenFGA base URL
+  storeId: '01J20QE9WMGWRRD7FSKJ703JJD'  # Replace with your OpenFGA store ID
 
 
 
 client.ts 
+
 
 import fetch from 'node-fetch';
 import { Config } from '@backstage/config';
@@ -210,193 +170,3 @@ export async function sendPermissionRequest(entityName: string, action: string, 
   return data;
 }
 
-
-policy.ts:
-
-import {
-  AuthorizeResult,
-  PolicyDecision,
-} from '@backstage/plugin-permission-common';
-import {
-  PermissionPolicy,
-  PolicyQuery,
-} from '@backstage/plugin-permission-node';
-
-import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
-
-export class AOpenFgaCatalogPolicy implements PermissionPolicy {
-  async handle(
-    request: PolicyQuery,
-    _user?: BackstageIdentityResponse,
-  ): Promise<PolicyDecision> {
-    if (request.permission.name === 'catalog.entity.delete') {
-      return {
-        result: AuthorizeResult.DENY,
-      };
-    }
-
-    return {
-      result: AuthorizeResult.ALLOW,
-    };
-  }
-}
-
-
-
-
-module.ts:
-
-import { AOpenFgaCatalogPolicy } from './policy';
-import { createBackendModule } from '@backstage/backend-plugin-api';
-import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
-
-export const permissionModuleACatalogPolicy = createBackendModule({
-  pluginId: 'permission',
-  moduleId: 'a-name-policy',
-  register(reg) {
-    reg.registerInit({
-      deps: { policy: policyExtensionPoint },
-      async init({ policy }) {
-        policy.setPolicy(new AOpenFgaCatalogPolicy());
-      },
-    });
-  },
-});
-
-
-backend index.ts:
-
-/*
- * Hi!
- *
- * Note that this is an EXAMPLE Backstage backend. Please check the README.
- *
- * Happy hacking!
- */
-
-import { createBackend } from '@backstage/backend-defaults';
-import { permissionModuleACatalogPolicy } from '../../../plugins/openfga/src/module';
-
-const backend = createBackend();
-
-backend.add(import('@backstage/plugin-app-backend/alpha'));
-backend.add(import('@backstage/plugin-proxy-backend/alpha'));
-backend.add(import('@backstage/plugin-scaffolder-backend/alpha'));
-backend.add(import('@backstage/plugin-techdocs-backend/alpha'));
-
-// auth plugin
-backend.add(import('@backstage/plugin-auth-backend'));
-// See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
-backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
-// See https://backstage.io/docs/auth/guest/provider
-
-// catalog plugin
-backend.add(import('@backstage/plugin-catalog-backend/alpha'));
-backend.add(
-  import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
-);
-
-// permission plugin
-backend.add(import('@backstage/plugin-permission-backend/alpha'));
-// backend.add(
-//   import('@backstage/plugin-permission-backend-module-allow-all-policy'),
-// );
-
-// search plugin
-backend.add(import('@backstage/plugin-search-backend/alpha'));
-backend.add(import('@backstage/plugin-search-backend-module-catalog/alpha'));
-backend.add(import('@backstage/plugin-search-backend-module-techdocs/alpha'));
-
-backend.add(permissionModuleACatalogPolicy)
-
-backend.start();
-
-
-
-
-
-
-
-
-
-
-
-another feature i need to add in the ui that create two buttons 
-
-
-
-Add policy button - which will call api post call 
-
-
-
-http://localhost:8080/stores/01J20QE9WMGWRRD7FSKJ703JJD/write
-
-
-
-body :
-
-
-
-{
-
- "writes": {
-
-  "tuple_keys": [
-
-   {
-
-    "_description": "Add guest as viewer on catalog_entity:example-website",
-
-    "user": "user:guest",
-
-    "relation": "viewer",
-
-    "object": "catalog_entity:example-website"
-
-   }
-
-  ]
-
- },
-
- "authorization_model_id": "01J20QHJVYWEADD27RP36HT38A"
-
-}
-
-
-
-Revoke policy button - which will call api post call
-
-http://localhost:8080/stores/01J20QE9WMGWRRD7FSKJ703JJD/write
-
-
-
-body :
-
-
-
-{
-
- "deletes": {
-
-  "tuple_keys": [
-
-   {
-
-    "_description": "Add guest as viewer on catalog_entity:example-website",
-
-    "user": "user:guest",
-
-    "relation": "viewer",
-
-    "object": "catalog_entity:example-website"
-
-   }
-
-  ]
-
- },
-
- "authorization_model_id": "01J20QHJVYWEADD27RP36HT38A"
-
-}
