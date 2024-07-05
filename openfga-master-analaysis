@@ -1,7 +1,6 @@
 policy.ts
 
 // packages/backend/src/policy.ts
-
 import {
   AuthorizeResult,
   PolicyDecision,
@@ -10,40 +9,10 @@ import {
 import {
   PermissionPolicy,
   PolicyQuery,
-  createConditionFactory,
 } from '@backstage/plugin-permission-node';
 import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
-import { createCatalogConditionalDecision, catalogConditions, createCatalogPermissionRule } from '@backstage/plugin-catalog-backend/alpha';
-import { sendPermissionRequest } from './client';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
-import { Entity } from '@backstage/catalog-model';
-
-const isInSystemRule = createCatalogPermissionRule({
-  name: 'IS_IN_SYSTEM',
-  description: 'Checks if an entity is part of the system provided',
-  resourceType: 'catalog-entity',
-  paramsSchema: z.object({
-    systemRef: z
-      .string()
-      .describe('SystemRef to check the resource is part of'),
-  }),
-  apply: (resource: Entity, { systemRef }) => {
-    if (!resource.relations) {
-      return false;
-    }
-
-    return resource.relations
-      .filter(relation => relation.type === 'partOf')
-      .some(relation => relation.targetRef === systemRef);
-  },
-  toQuery: ({ systemRef }) => ({
-    key: 'relations.partOf',
-    values: [systemRef],
-  }),
-});
-
-const isInSystem = createConditionFactory(isInSystemRule);
+import { sendPermissionRequest } from './client';
 
 export class AOpenFgaCatalogPolicy implements PermissionPolicy {
   private config: Config;
@@ -56,60 +25,44 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     request: PolicyQuery,
     user?: BackstageIdentityResponse,
   ): Promise<PolicyDecision> {
+    // Check if the request is for catalog-entity permissions
     if (isResourcePermission(request.permission, 'catalog-entity')) {
-      // Handle the specific delete permission
       if (request.permission.name === 'catalog.entity.delete') {
-        const entityName = this.extractEntityName(request.attributes?.resourceRef);
+        // Extract the entity name from the permission's parameters if available
+        const entityName = request.permission.parameters?.entityName as string;
 
         if (!entityName) {
+          // If entity name is not provided, deny the permission
           return { result: AuthorizeResult.DENY };
         }
 
         try {
+          // Send a permission request to the OpenFGA API
           const response = await sendPermissionRequest(
             entityName,
             'Delete',
             this.config,
           );
 
-          if (response.allowed) {
-            return { result: AuthorizeResult.ALLOW };
-          } else {
-            return { result: AuthorizeResult.DENY };
-          }
+          // Return ALLOW or DENY based on the response from the OpenFGA API
+          return response.allowed
+            ? { result: AuthorizeResult.ALLOW }
+            : { result: AuthorizeResult.DENY };
         } catch (error) {
           console.error('Error checking permission:', error);
           return { result: AuthorizeResult.DENY };
         }
       }
 
-      return createCatalogConditionalDecision(
-        request.permission,
-        catalogConditions.isEntityOwner({
-          claims: user?.identity.ownershipEntityRefs ?? [],
-        }),
-        {
-          anyOf: [
-            catalogConditions.isEntityOwner({
-              claims: user?.identity.ownershipEntityRefs ?? [],
-            }),
-            isInSystem({ systemRef: 'interviewing' }),
-          ],
-        },
-      );
+      // For other catalog-entity permissions, you can add additional conditions here
+      return { result: AuthorizeResult.ALLOW };
     }
 
-    return { result: AuthorizeResult.ALLOW };
-  }
-
-  private extractEntityName(resourceRef: string | undefined): string | null {
-    if (!resourceRef) {
-      return null;
-    }
-    const match = resourceRef.match(/[^/]+$/);
-    return match ? match[0] : null;
+    // Deny all other permissions by default
+    return { result: AuthorizeResult.DENY };
   }
 }
+
 
 
 
