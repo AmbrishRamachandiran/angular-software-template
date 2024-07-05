@@ -88,37 +88,56 @@ export function getPermissionResponse(): OpenFgaResponse | null {
   return permissionResponse;
 }
 
-export async function sendPermissionRequest(entityName: string, action: string, config: Config): Promise<OpenFgaResponse> {
-  const openFgaBaseUrl = config.getOptionalString('openfga.baseUrl') || 'http://localhost:8080';
-  const openFgaStoreId = config.getOptionalString('openfga.storeId') || '01J20QE9WMGWRRD7FSKJ703JJD';
-
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/check`;
-
-  const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read';
+export async function addPolicy(entityName: string, user: string, relation: string, objectId: string, authorizationModelId: string): Promise<void> {
+  const openFgaBaseUrl = 'http://localhost:8080';
+  const openFgaStoreId = '01J20QE9WMGWRRD7FSKJ703JJD';
+  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
 
   const requestBody: OpenFgaRequest = {
     tuple_key: {
-      user: 'user:guest',
+      user,
       relation,
-      object: `catalog_entity:${entityName}`,
+      object: `catalog_entity:${objectId}`,
     },
-    authorization_model_id: '01J20QHJVYWEADD27RP36HT38A',
+    authorization_model_id: authorizationModelId,
   };
 
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
+    body: JSON.stringify({ writes: { tuple_keys: [requestBody] } }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenFGA API call failed with status: ${response.status}`);
+    throw new Error(`Failed to add policy. Status: ${response.status}`);
   }
-
-  const data: OpenFgaResponse = await response.json();
-  permissionResponse = data;
-  return data;
 }
+
+export async function revokePolicy(entityName: string, user: string, relation: string, objectId: string, authorizationModelId: string): Promise<void> {
+  const openFgaBaseUrl = 'http://localhost:8080';
+  const openFgaStoreId = '01J20QE9WMGWRRD7FSKJ703JJD';
+  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
+
+  const requestBody: OpenFgaRequest = {
+    tuple_key: {
+      user,
+      relation,
+      object: `catalog_entity:${objectId}`,
+    },
+    authorization_model_id: authorizationModelId,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deletes: { tuple_keys: [requestBody] } }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to revoke policy. Status: ${response.status}`);
+  }
+}
+
 
 
 
@@ -212,3 +231,161 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     return { result: AuthorizeResult.DENY };
   }
 }
+
+
+
+component:
+
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Select, MenuItem, FormControl, FormLabel, Button } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import { addPolicy, revokePolicy } from '../../client';
+import { useApi, identityApiRef } from '@backstage/core-plugin-api';
+import { CATALOG_FILTER_EXISTS, catalogApiRef } from '@backstage/plugin-catalog-react';
+
+const entityOptions = ['acme', 'test', 'entitytest', 'acmetest', 'example-website'];
+const actionOptions = ['Read', 'Delete'];
+
+const useStyles = makeStyles({
+  success: {
+    color: 'green',
+  },
+  danger: {
+    color: 'red',
+  },
+  info: {
+    color: 'blue',
+  },
+});
+
+export const OpenfgaCatalogComponent = () => {
+  const classes = useStyles();
+  const [entities, setEntities] = useState([]);
+  const [user, setUser] = useState('');
+  const [selectedEntity, setSelectedEntity] = useState(entityOptions[0]);
+  const [selectedAction, setSelectedAction] = useState(actionOptions[0]);
+  const [allowMessage, setAllowMessage] = useState('');
+  const [denyMessage, setDenyMessage] = useState('');
+  const catalogApi = useApi(catalogApiRef);
+  const identityApi = useApi(identityApiRef);
+
+  const handleEntityChange = (event) => {
+    setSelectedEntity(event.target.value);
+  };
+
+  const handleActionChange = (event) => {
+    setSelectedAction(event.target.value);
+  };
+
+  const fetchEntities = async () => {
+    try {
+      const { items } = await catalogApi.getEntities({ 
+        fields: ['metadata.name'],
+        filter: {
+          'kind=component': CATALOG_FILTER_EXISTS,
+        },
+      });
+      const entityNames = items.map((entity) => entity.metadata.name);
+      const { ownershipEntityRefs } = await identityApi.getBackstageIdentity();
+      setUser(ownershipEntityRefs);
+      setEntities(entityNames); 
+    } catch (error) {
+      console.error('Error fetching catalog entities:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchEntities();
+  }, []);
+
+  const handleAddPolicy = async () => {
+    try {
+      await addPolicy(selectedEntity, 'user:guest', 'viewer', selectedEntity, '01J20QHJVYWEADD27RP36HT38A');
+      setAllowMessage(`Added policy: user:guest as viewer on catalog_entity:${selectedEntity}`);
+    } catch (error) {
+      console.error('Failed to add policy:', error);
+      setDenyMessage(`Failed to add policy: ${error.message}`);
+    }
+  };
+
+  const handleRevokePolicy = async () => {
+    try {
+      await revokePolicy(selectedEntity, 'user:guest', 'viewer', selectedEntity, '01J20QHJVYWEADD27RP36HT38A');
+      setAllowMessage(`Revoked policy: user:guest as viewer on catalog_entity:${selectedEntity}`);
+    } catch (error) {
+      console.error('Failed to revoke policy:', error);
+      setDenyMessage(`Failed to revoke policy: ${error.message}`);
+    }
+  };
+
+  return (
+    <Box sx={{ border: 1, borderRadius: 0, p: 2, width: '100%' }}>
+      <Typography className={classes.info} variant="body2" gutterBottom>
+        CURRENT USER: {user}
+      </Typography>
+      <Typography variant="h6" gutterBottom>
+        CATALOG PERMISSION POLICY
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <FormControl fullWidth>
+          <FormLabel>Select Entity</FormLabel>
+          <Select
+            displayEmpty
+            value={selectedEntity}
+            onChange={handleEntityChange}
+            label="Select Entity"
+            sx={{ width: '100%' }}
+          >
+            {entities.map((entityName) => (
+              <MenuItem key={entityName} value={entityName}>
+                {entityName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth>
+          <FormLabel>Select Action</FormLabel>
+          <Select
+            displayEmpty
+            value={selectedAction}
+            onChange={handleActionChange}
+            label="Select Action"
+            sx={{ width: '100%' }}
+          >
+            {actionOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+        <Button
+          className={classes.success}
+          variant="contained"
+          onClick={handleAddPolicy}
+        >
+          Add Policy
+        </Button>
+        <Button
+          className={classes.danger}
+          variant="contained"
+          onClick={handleRevokePolicy}
+        >
+          Revoke Policy
+        </Button>
+      </Box>
+      {allowMessage && (
+        <Typography className={classes.success} variant="body2" sx={{ color: 'green' }}>
+          {allowMessage}
+        </Typography>
+      )}
+      {denyMessage && (
+        <Typography className={classes.danger} variant="body2" sx={{ color: 'red' }}>
+          {denyMessage}
+        </Typography>
+      )}
+    </Box>
+  );
+};
