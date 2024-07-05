@@ -320,3 +320,93 @@ backend.add(import('@backstage/plugin-search-backend-module-techdocs/alpha'));
 backend.add(permissionModuleACatalogPolicy)
 
 backend.start();
+
+
+
+
+
+
+
+
+
+
+
+another feature i need to add in the ui that create two buttons 
+
+
+
+Add policy button - which will call api post call 
+
+
+
+http://localhost:8080/stores/01J20QE9WMGWRRD7FSKJ703JJD/write
+
+
+
+body :
+
+
+
+{
+
+ "writes": {
+
+  "tuple_keys": [
+
+   {
+
+    "_description": "Add guest as viewer on catalog_entity:example-website",
+
+    "user": "user:guest",
+
+    "relation": "viewer",
+
+    "object": "catalog_entity:example-website"
+
+   }
+
+  ]
+
+ },
+
+ "authorization_model_id": "01J20QHJVYWEADD27RP36HT38A"
+
+}
+
+
+
+Revoke policy button - which will call api post call
+
+http://localhost:8080/stores/01J20QE9WMGWRRD7FSKJ703JJD/write
+
+
+
+body :
+
+
+
+{
+
+ "deletes": {
+
+  "tuple_keys": [
+
+   {
+
+    "_description": "Add guest as viewer on catalog_entity:example-website",
+
+    "user": "user:guest",
+
+    "relation": "viewer",
+
+    "object": "catalog_entity:example-website"
+
+   }
+
+  ]
+
+ },
+
+ "authorization_model_id": "01J20QHJVYWEADD27RP36HT38A"
+
+}
