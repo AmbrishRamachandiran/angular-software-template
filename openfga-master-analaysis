@@ -59,7 +59,7 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     if (isResourcePermission(request.permission, 'catalog-entity')) {
       // Handle the specific delete permission
       if (request.permission.name === 'catalog.entity.delete') {
-        const entityName = this.extractEntityName(request);
+        const entityName = this.extractEntityName(request.attributes?.resourceRef);
 
         if (!entityName) {
           return { result: AuthorizeResult.DENY };
@@ -102,9 +102,7 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     return { result: AuthorizeResult.ALLOW };
   }
 
-  private extractEntityName(request: PolicyQuery): string | null {
-    // Assuming entity name is passed as part of the resource identifier
-    const resourceRef = request.attributes?.resourceRef as string | undefined;
+  private extractEntityName(resourceRef: string | undefined): string | null {
     if (!resourceRef) {
       return null;
     }
