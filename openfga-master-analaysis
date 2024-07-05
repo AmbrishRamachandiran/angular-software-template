@@ -25,12 +25,17 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     request: PolicyQuery,
     user?: BackstageIdentityResponse,
   ): Promise<PolicyDecision> {
-    const { permission, resource } = request;
+    if (request.permission.name === 'catalog.entity.delete') {
+      // Extract entity information from the resourceRef
+      const entityName = this.extractEntityName(request.resourceRef);
 
-    if (permission.name === 'catalog.entity.delete' && resource?.name) {
+      if (!entityName) {
+        return { result: AuthorizeResult.DENY };
+      }
+
       try {
         const response = await sendPermissionRequest(
-          resource.name,
+          entityName,
           'Delete',
           this.config,
         );
@@ -47,6 +52,12 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     }
 
     return { result: AuthorizeResult.ALLOW };
+  }
+
+  private extractEntityName(resourceRef: string): string | null {
+    // Assuming resourceRef is in the format 'component:default/my-entity'
+    const match = resourceRef.match(/[^/]+$/);
+    return match ? match[0] : null;
   }
 }
 
@@ -114,20 +125,21 @@ module.ts
 import { AOpenFgaCatalogPolicy } from './policy';
 import { createBackendModule } from '@backstage/backend-plugin-api';
 import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
-import { Config } from '@backstage/config';
+import { configApiRef } from '@backstage/core-plugin-api';
 
 export const permissionModuleACatalogPolicy = createBackendModule({
   pluginId: 'permission',
   moduleId: 'a-name-policy',
   register(reg) {
     reg.registerInit({
-      deps: { policy: policyExtensionPoint, config: Config },
+      deps: { policy: policyExtensionPoint, config: configApiRef },
       async init({ policy, config }) {
         policy.setPolicy(new AOpenFgaCatalogPolicy(config));
       },
     });
   },
 });
+
 
 
 
