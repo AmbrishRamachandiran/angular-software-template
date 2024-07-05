@@ -23,136 +23,137 @@ const entityOptions = ['acme', 'test', 'entitytest', 'acmetest', 'example-websit
 const actionOptions = ['Read', 'Delete'];
 
 const useStyles = makeStyles({
-  success: {
-    color: 'green',
-  },
-  danger: {
-    color: 'red',
-  },
-  info: {
-    color: 'blue',
-  },
+  success: {
+    color: 'green',
+  },
+  danger: {
+    color: 'red',
+  },
+  info: {
+    color: 'blue',
+  },
 });
 
 export const OpenfgaCatalogComponent = () => {
-  const classes = useStyles();
-  const [entities, setEntities] = useState([]);
-  const [user, setUser] = useState('');
-  const [selectedEntity, setSelectedEntity] = useState(entityOptions[0]);
-  const [selectedAction, setSelectedAction] = useState(actionOptions[0]);
-  const [allowMessage, setAllowMessage] = useState('');
-  const [denyMessage, setDenyMessage] = useState('');
-  const catalogApi = useApi(catalogApiRef);
-  const identityApi = useApi(identityApiRef);
+  const classes = useStyles();
+  const [entities, setEntities] = useState([]);
+  const [user, setUser] = useState('');
+  const [selectedEntity, setSelectedEntity] = useState(entityOptions[0]);
+  const [selectedAction, setSelectedAction] = useState(actionOptions[0]);
+  const [allowMessage, setAllowMessage] = useState('');
+  const [denyMessage, setDenyMessage] = useState('');
+  const catalogApi = useApi(catalogApiRef);
+  const identityApi = useApi(identityApiRef);
 
-  const handleEntityChange = (event) => {
-    setSelectedEntity(event.target.value);
-  };
+  const handleEntityChange = (event) => {
+    setSelectedEntity(event.target.value);
+  };
 
-  const handleActionChange = (event) => {
-    setSelectedAction(event.target.value);
-  };
+  const handleActionChange = (event) => {
+    setSelectedAction(event.target.value);
+  };
 
-  const fetchEntities = async () => {
-    try {
-      const {items} = await catalogApi.getEntities({ 
-        fields: ['metadata.name'],
-        filter: {
-          'kind=component':
-            CATALOG_FILTER_EXISTS,
-        },
-      });
-      const entityNames = items.map((entity) => entity.metadata.name);
-      const {ownershipEntityRefs} = await identityApi.getBackstageIdentity()
-      setUser(ownershipEntityRefs);
-      setEntities(entityNames); 
-    } catch (error) {
-      console.error('Error fetching catalog entities:', error);
-    }
-  };
+  const fetchEntities = async () => {
+    try {
+      const {items} = await catalogApi.getEntities({ 
+        fields: ['metadata.name'],
+        filter: {
+          'kind=component':
+            CATALOG_FILTER_EXISTS,
+        },
+      });
+      const entityNames = items.map((entity) => entity.metadata.name);
+      const {ownershipEntityRefs} = await identityApi.getBackstageIdentity()
+      setUser(ownershipEntityRefs);
+      setEntities(entityNames); 
+    } catch (error) {
+      console.error('Error fetching catalog entities:', error);
+    }
+  };
 
-  useEffect(() => {
-    fetchEntities();
-  }, []);
+  useEffect(() => {
+    fetchEntities();
+  }, []);
 
-  const handleActivatePolicy = async () => {
-    const response = await sendPermissionRequest(selectedEntity, selectedAction);
-    console.log(response)
-    if (response.allowed) {
-      setAllowMessage(`${user} Has permission to ${selectedAction} the ${selectedEntity}`);
-    } else {
-      setDenyMessage(`${user} Don't have permission to ${selectedAction} the ${selectedEntity}`);
-    }
-    setTimeout(() => {
-      setAllowMessage('');
-      setDenyMessage('');
-    }, 3000);
-  };
+  const handleActivatePolicy = async () => {
+    const response = await sendPermissionRequest(selectedEntity, selectedAction);
+    console.log(response)
+    if (response.allowed) {
+      setAllowMessage(`${user} Has permission to ${selectedAction} the ${selectedEntity}`);
+    } else {
+      setDenyMessage(`${user} Don't have permission to ${selectedAction} the ${selectedEntity}`);
+    }
+    setTimeout(() => {
+      setAllowMessage('');
+      setDenyMessage('');
+    }, 3000);
+  };
 
-  return (
-    <Box sx={{ border: 1, borderRadius: 0, p: 2, width: '100%' }}>
-      <Typography className={classes.info} variant="body2" gutterBottom>
-       CURRENT USER : {user}
-      </Typography>
-      <Typography variant="h6" gutterBottom>
-        CATALOG PERMISSION POLICY
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <FormControl fullWidth>
-          <FormLabel>Select Entity</FormLabel>
-          <Select
-            displayEmpty
-            value={selectedEntity}
-            onChange={handleEntityChange}
-            label="Select Entity"
-            sx={{ width: '100%' }}
-          >
-             {entities.map((entityName) => (
-              <MenuItem key={entityName} value={entityName}>
-                {entityName}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl fullWidth>
-          <FormLabel>Select Action</FormLabel>
-          <Select
-            displayEmpty
-            value={selectedAction}
-            onChange={handleActionChange}
-            label="Select Action"
-            sx={{ width: '100%' }}
-          >
-            {actionOptions.map((option) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-        <Button
-          className={classes.success}
-          variant="contained"
-          onClick={handleActivatePolicy}
-        >
-          Check Policy
-        </Button>
-      </Box>
-      {allowMessage && (
-        <Typography className={classes.success} variant="body2" sx={{ color: 'green' }}>
-          {allowMessage}
-        </Typography>
-      )}
-      {denyMessage && (
-        <Typography className={classes.danger} variant="body2" sx={{ color: 'red' }}>
-          {denyMessage}
-        </Typography>
-      )}
-    </Box>
-  );
+  return (
+    <Box sx={{ border: 1, borderRadius: 0, p: 2, width: '100%' }}>
+      <Typography className={classes.info} variant="body2" gutterBottom>
+       CURRENT USER : {user}
+      </Typography>
+      <Typography variant="h6" gutterBottom>
+        CATALOG PERMISSION POLICY
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <FormControl fullWidth>
+          <FormLabel>Select Entity</FormLabel>
+          <Select
+            displayEmpty
+            value={selectedEntity}
+            onChange={handleEntityChange}
+            label="Select Entity"
+            sx={{ width: '100%' }}
+          >
+             {entities.map((entityName) => (
+              <MenuItem key={entityName} value={entityName}>
+                {entityName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth>
+          <FormLabel>Select Action</FormLabel>
+          <Select
+            displayEmpty
+            value={selectedAction}
+            onChange={handleActionChange}
+            label="Select Action"
+            sx={{ width: '100%' }}
+          >
+            {actionOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+        <Button
+          className={classes.success}
+          variant="contained"
+          onClick={handleActivatePolicy}
+        >
+          Check Policy
+        </Button>
+      </Box>
+      {allowMessage && (
+        <Typography className={classes.success} variant="body2" sx={{ color: 'green' }}>
+          {allowMessage}
+        </Typography>
+      )}
+      {denyMessage && (
+        <Typography className={classes.danger} variant="body2" sx={{ color: 'red' }}>
+          {denyMessage}
+        </Typography>
+      )}
+    </Box>
+  );
 };
+
 
 
 client.ts 
@@ -161,63 +162,52 @@ import fetch from 'node-fetch';
 import { Config } from '@backstage/config';
 
 interface OpenFgaRequest {
-  tuple_key: { user: string; relation: string; object: string };
-  authorization_model_id: string;
+  tuple_key: { user: string; relation: string; object: string };
+  authorization_model_id: string;
 }
 
 interface OpenFgaResponse {
-  allowed: boolean; 
+  allowed: boolean;
 }
 
 let permissionResponse: OpenFgaResponse | null = null;
 
-/**
- * Makes a call to your OpenFGA API to check permissions.
- * @param entityName The name of the entity for which permission is being checked.
- * @param action The action (e.g., "Read", "Delete") for which permission is being checked.
- * @param config The backend configuration object.
- */
-
 export function getPermissionResponse(): OpenFgaResponse | null {
-    return permissionResponse;
-  }
+  return permissionResponse;
+}
 
 export async function sendPermissionRequest(entityName: string, action: string, config: Config): Promise<OpenFgaResponse> {
-//   const openFgaBaseUrl = config.getOptionalString('openfga.baseUrl');
-//   const openFgaStoreId = config.getOptionalString('openfga.storeId');
-const openFgaBaseUrl = 'http://localhost:8080'
-const openFgaStoreId = '01J20QE9WMGWRRD7FSKJ703JJD';
+  // const openFgaBaseUrl = config.getOptionalString('openfga.baseUrl') || 'http://localhost:8080';
+  // const openFgaStoreId = config.getOptionalString('openfga.storeId') || '01J20QE9WMGWRRD7FSKJ703JJD';
+  const openFgaBaseUrl = 'http://localhost:8080';
+  const openFgaStoreId = '01J20QE9WMGWRRD7FSKJ703JJD';
 
-  if (!openFgaBaseUrl || !openFgaStoreId) {
-    throw new Error('OpenFGA configuration missing in app-config.yaml');
-  }
+  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/check`;
 
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/check`;
+  const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read';
 
-  const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read'; 
+  const requestBody: OpenFgaRequest = {
+    tuple_key: {
+      user: 'user:guest',
+      relation,
+      object: `catalog_entity:${entityName}`,
+    },
+    authorization_model_id: '01J20QHJVYWEADD27RP36HT38A',
+  };
 
-  const requestBody: OpenFgaRequest = {
-    tuple_key: {
-      user: 'user:guest',
-      relation,
-      object: `catalog_entity:${entityName}`, 
-    },
-    authorization_model_id: '01J20QHJVYWEADD27RP36HT38A',
-  };
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
+  if (!response.ok) {
+    throw new Error(`OpenFGA API call failed with status: ${response.status}`);
+  }
 
-  if (!response.ok) {
-    throw new Error(`OpenFGA API call failed with status: ${response.status}`);
-  }
-
-  const data: OpenFgaResponse = await response.json();
-  permissionResponse = data; 
-  return data;
+  const data: OpenFgaResponse = await response.json();
+  permissionResponse = data;
+  return data;
 }
 
 
