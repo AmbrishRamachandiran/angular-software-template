@@ -1,3 +1,6 @@
+
+
+
 component:
 
 import React, { useState, useEffect } from 'react';
@@ -197,3 +200,68 @@ export async function sendPermissionRequest(entityName: string, action: string, 
   permissionResponse = data;
   return data;
 }
+
+
+in above code Add one more feature for ADD/MODIFY policy
+add one more box at right hand side of START EXISTING POLICY make sure style changes boxes should not overflow each other while doing action
+UI requirements :
+display user name similar to START EXISTING POLICY box
+Typography MODIFY/ADD POLICY
+diplay Entity select box
+display Select Access Type select box in that show two values owner and viewer
+then keep two buttons ADD POLICY and RESET POLICY
+
+once ADD POLICY clicked then send selected entity,selected access type,user to client.ts
+in client.ts create a new method for ADD POLICY POST API call 
+use same baseurl and store id 
+and the body should be 
+
+{
+  "writes": {
+    "tuple_keys": [
+      {
+        "_description": "Add guest as owner on catalog_entity:example-website",
+        "user": "user:development/guest",
+        "relation": "owner",
+        "object": "catalog_entity:example-website"
+      }
+    ]
+  },
+  "authorization_model_id": "01J20QHJVYWEADD27RP36HT38A"
+}
+
+here change available values to dynamic once response is ok in the ui add alert same to START EXISTING POLICY 
+the message should be if selectedaccesstype is owner then 
+alert message
+"Added permission for user to read/delete the entity" in green color
+ if selectedaccesstype is viewer then
+"Added permission for user to read not delete the entity" in red color
+
+if response is failed the print response.message in alert in red color
+
+once REVOKE POLICY clicked then send selected entity,selected access type,user to client.ts
+in client.ts create a new method for REVOKE POLICY POST API call 
+use same baseurl and store id 
+and the body should be 
+
+{
+  "deletes": {
+    "tuple_keys": [
+      {
+        "_description": "Revoke guest as owner on catalog_entity:example-website",
+        "user": "user:development/guest",
+        "relation": "owner",
+        "object": "catalog_entity:example-website"
+      }
+    ]
+  },
+  "authorization_model_id": "01J20QHJVYWEADD27RP36HT38A"
+}
+here change available values to dynamic once response is ok in the ui add alert same to START EXISTING POLICY 
+the message should be if selectedaccesstype is owner then 
+alert message
+"Revoked permission for user to read/delete the entity" in red color
+ if selectedaccesstype is viewer then
+"Revoked permission for user to read not delete the entity" in red color
+
+if response is failed the print response.message in alert in red color
