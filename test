@@ -1,21 +1,43 @@
-Here’s a suggestion for giving feedback to your managers:
+Here’s a summary of your contributions to Backstage, both code and non-code, that you can share with your manager:
 
 ---
 
-**Feedback for Enhancing My Overall Experience**:
+### **Code Contributions**:
+1. **Core Plugin**:
+   - Backstage Catalog: Alert popup, icons enhancements.
 
-1. **Increased Opportunities for Skill Development**:
-   - I appreciate the support provided for certifications and learning. It would be beneficial to have more structured opportunities for advanced technical training and workshops, especially in emerging technologies like AI or cloud solutions, to further enhance my expertise.
+2. **Custom Plugins**:
+   - Playlist Plugin: Developed and contributed to functionality.
+   - Shortcuts Plugin: Contributed to feature development.
+   - Bazaar Plugin: Built and improved plugin forms.
 
-2. **More Regular One-on-One Feedback**:
-   - While feedback during performance reviews is valuable, more frequent one-on-one check-ins could help identify areas for growth and improvement in real time, allowing me to adjust and align my efforts more effectively with team goals.
+3. **Profile Settings Plugin Page**:
+   - Contributed to the design and functionality of the Profile Settings plugin page.
 
-3. **Cross-Department Collaboration Opportunities**:
-   - Expanding opportunities to collaborate with other departments or technical teams would provide greater exposure to different challenges and knowledge areas, enriching both my learning experience and problem-solving capabilities.
-
-4. **Recognition for Contributions**:
-   - While I feel supported, more frequent acknowledgment of contributions, whether through team meetings or internal platforms, could further boost motivation and team morale.
+4. **Bug Fixes and Migration Changes**:
+   - **Gocd Plugin**
+   - **Github Deployment Plugin**
+   - **GCP Project Plugin**
+   - **Github Issues Plugin**
+   - **Tech Radar Plugin**
+   - **Allure Plugin**
+   - **App Visualizer Plugin**
+   - **Entity Feedback Plugin**
+   - **Entity Validation Plugin**
+   - **GitOps Profile Plugin**
+   - **GraphQL Voyager Plugin**
 
 ---
 
-This feedback is constructive and focused on areas that can enhance both your professional growth and overall work experience.
+### **Non-Code Contributions**:
+1. **Documentation Contributions (README)**:
+   - Playlist Plugin
+   - Bazaar Plugin
+   - Code-scene Plugin
+   - Front End System
+   - ADR Plugin
+   - Terraform Plugin
+   - Bitrise Plugin
+   - Backstage.io Documentation
+
+These contributions reflect your extensive involvement in both code development and documentation, strengthening the Backstage platform in multiple areas.
