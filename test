@@ -1,42 +1,32 @@
- Here are the simplified questions with their corresponding answers. You can use these to guide your manager and offer context to the audience.
+Here’s how you can approach the **New Learning, Complete Training, and Certification** section:
 
 ---
 
-1. **On the permission framework:**
-   - **Question**: "How does the **Backstage permission framework** help improve security across different teams and projects?"
-   - **Answer**: "The Backstage permission framework allows you to assign different permissions to different roles and users. This ensures that only authorized users can access certain resources, keeping sensitive data and functionality safe."
+### **New Learning, Complete Training, and Certification**:
 
-   - **Question**: "Can you explain in simple terms how we assign **permissions** to users in Backstage?"
-   - **Answer**: "Permissions are assigned based on roles. For example, admins might have full access, while developers might only have permissions to view or edit specific resources. It’s flexible and easy to configure."
-
-2. **On authentication:**
-   - **Question**: "Why is it important to have multiple **authentication providers** in Backstage?"
-   - **Answer**: "Different organizations use different identity providers. By supporting multiple authentication providers like Google or GitHub, Backstage ensures that teams can use the identity provider they’re already comfortable with, making it more secure and user-friendly."
-
-   - **Question**: "How easy is it to add a new authentication provider in Backstage?"
-   - **Answer**: "It’s pretty straightforward. You can integrate a new authentication provider by configuring it in Backstage's configuration file and adding the relevant provider plugin."
-
-3. **On fine-grained authorization:**
-   - **Question**: "What exactly is **fine-grained authorization**, and why would a team need it?"
-   - **Answer**: "Fine-grained authorization means that you can control access at a very detailed level. For example, instead of just giving someone access to a whole project, you can specify that they only have access to certain parts, like reading a particular service or editing a specific resource."
-
-   - **Question**: "Can you give an example of how **fine-grained permissions** might be useful for managing access in Backstage?"
-   - **Answer**: "Imagine a team that has access to a software catalog. The team lead might have full permissions, but junior developers could have read-only access to avoid making changes. This ensures better control and security."
-
-4. **On OpenFGA integration:**
-   - **Question**: "How does using **OpenFGA** simplify the way we manage permissions?"
-   - **Answer**: "OpenFGA allows you to create more complex, flexible policies for managing permissions. Instead of just assigning roles, you can define dynamic conditions for accessing resources, which makes it easier to manage large teams with diverse roles."
-
-   - **Question**: "What makes OpenFGA a good choice for **policy-based authorization** in Backstage?"
-   - **Answer**: "OpenFGA is great because it’s designed for fine-grained access control, and it integrates well with Backstage. It lets you create very detailed policies that are easy to maintain as your team and projects grow."
-
-5. **General usage:**
-   - **Question**: "How easy is it for teams to customize **permissions** for their own needs in Backstage?"
-   - **Answer**: "It’s quite simple. Backstage’s permission framework is flexible, allowing teams to create custom permissions or policies based on their specific requirements without much effort."
-
-   - **Question**: "In what situations would you recommend using **condition-based permissions**?"
-   - **Answer**: "Condition-based permissions are useful when you want to enforce specific rules, like allowing access to a resource only if a user belongs to a certain team or if they created the resource. It adds an extra layer of security and control."
+- **Cloud Certification within 2 Months**:
+   - Currently pursuing **Azure certification** via Udemy to enhance cloud platform expertise. This will help in managing cloud-based infrastructure and improving the deployment process in future projects.
+   - Also working towards completing an **internal cloud certification** focused on cloud architecture and best practices within the organization.
 
 ---
 
-These question-and-answer pairs will help maintain engagement while guiding the discussion naturally.
+This highlights your commitment to cloud learning and the certifications you’re working on.
+
+
+
+
+
+
+Here’s how you can approach the **New Learning, Complete Training, and Certification** section:
+
+---
+
+### **New Learning, Complete Training, and Certification**:
+
+- **Cloud Certification within 2 Months**:
+   - Currently pursuing **Azure certification** via Udemy to enhance cloud platform expertise. This will help in managing cloud-based infrastructure and improving the deployment process in future projects.
+   - Also working towards completing an **internal cloud certification** focused on cloud architecture and best practices within the organization.
+
+---
+
+This highlights your commitment to cloud learning and the certifications you’re working on.
