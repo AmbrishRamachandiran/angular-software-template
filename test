@@ -1,35 +1,17 @@
-Here’s the **Strength** and **Growth** separated from the previous response:
-
-### **Strength**:
-
-1. **Strong Technical Expertise**:
-   - Demonstrated proficiency in **Java Spring Boot, SQL, and Linux commands**, which enabled efficient project development and effective problem-solving.
-
-2. **Process Adherence**:
-   - Consistently followed best practices for **template creation**, **customer email deliveries**, and **development tasks**, ensuring high-quality output and on-time delivery.
-
-3. **Collaboration and Knowledge Sharing**:
-   - Played a significant role in **knowledge management**, documenting best practices and processes to enhance team collaboration and reduce dependencies.
-
-4. **Adaptability**:
-   - Quickly adapted to evolving project requirements and technologies, demonstrating the ability to **multitask** effectively across different areas such as development, customer communication, and cloud training.
-
----
-
-### **Growth**:
-
-1. **Continuous Learning**:
-   - Actively pursuing **Azure cloud certification** and **internal cloud certification**, demonstrating a strong commitment to keeping skills up-to-date with the latest technologies and expanding cloud computing expertise.
-
-2. **Enhanced Collaboration**:
-   - Continued development in cross-functional collaboration by improving processes for **knowledge sharing** and **team communication** to streamline workflows and support overall project goals.
-
-3. **Broader Cloud Expertise**:
-   - Expanding expertise in cloud infrastructure and deployment through ongoing certifications, aiming to contribute more to cloud-based solutions and decisions in the future.
-
-4. **Leadership Potential**:
-   - Aspiring to take on a **mentorship role**, guiding junior team members by sharing knowledge and best practices, and contributing to the overall team growth.
-
----
-
-These points separate your current strengths and areas where you are actively growing.
+{allowMessage && (
+  <Alert severity="success" className={classes.alert}>{allowMessage}</Alert>
+)}
+{denyMessage && (
+  <>
+    {denyMessage.includes('read') && (
+      <Alert severity="success" className={classes.alert}>
+        User has permission to read the {selectedEntity}
+      </Alert>
+    )}
+    {denyMessage.includes('delete') && (
+      <Alert severity="error" className={classes.alert}>
+        User does not have permission to delete the {selectedEntity}
+      </Alert>
+    )}
+  </>
+)}
