@@ -1,17 +1,66 @@
-{allowMessage && (
-  <Alert severity="success" className={classes.alert}>{allowMessage}</Alert>
-)}
-{denyMessage && (
-  <>
-    {denyMessage.includes('read') && (
-      <Alert severity="success" className={classes.alert}>
-        User has permission to read the {selectedEntity}
-      </Alert>
-    )}
-    {denyMessage.includes('delete') && (
-      <Alert severity="error" className={classes.alert}>
-        User does not have permission to delete the {selectedEntity}
-      </Alert>
-    )}
-  </>
-)}
+To onboard GitHub groups in Backstage and give access at an organization level, you can make use of GitHub discovery and integration features provided by Backstage. Here’s how you can proceed:
+
+### 1. **GitHub Organization Integration**
+Backstage supports integration with GitHub organizations, allowing you to onboard repositories across the entire organization, not just individual repositories. Follow these steps to enable organization-wide integration:
+
+- **Step 1: Update Backstage `app-config.yaml`**
+  In your Backstage configuration file (`app-config.yaml`), you can configure GitHub discovery to scan all repositories within your GitHub organization. You’ll need to include the GitHub token with appropriate permissions.
+
+  Here's a sample configuration:
+  ```yaml
+  integrations:
+    github:
+      - host: github.com
+        token: ${GITHUB_TOKEN}  # Ensure the token has appropriate permissions
+        apiBaseUrl: https://api.github.com
+        rawBaseUrl: https://raw.githubusercontent.com
+        organization: your-github-org-name # Specify your GitHub organization
+  ```
+
+- **Step 2: Set up GitHub Discovery**
+  Backstage's GitHub discovery feature allows it to crawl all repositories under a specific GitHub organization and automatically detect any Backstage-compatible repositories. You can define this in your `catalog` configuration:
+
+  ```yaml
+  catalog:
+    rules:
+      - allow: [Component]
+  locations:
+    - type: github-discovery
+      target: https://github.com/your-github-org-name/*/blob/main/catalog-info.yaml
+  ```
+
+  This configuration will automatically discover repositories in your GitHub organization that contain a `catalog-info.yaml` file.
+
+### 2. **Permissions for GitHub Organization**
+Make sure the GitHub token used has the following permissions to access the organization:
+- `repo`: Full control of private repositories
+- `read:org`: Read access to organization membership
+- `workflow`: Permissions for workflows if applicable
+
+### 3. **Onboard GitHub Groups**
+For onboarding GitHub groups, you can extend this setup to manage teams or groups in GitHub by defining teams as maintainers or owners in the `catalog-info.yaml` of individual repositories or components.
+
+Example `catalog-info.yaml`:
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: example-component
+  description: Example service
+  owner: team-name  # GitHub team that owns the service
+spec:
+  type: service
+  lifecycle: production
+```
+
+This ensures that the specified GitHub team is considered the owner, and you can map roles and permissions in Backstage accordingly.
+
+### 4. **Granting Organization Access**
+- You will need to provide the necessary GitHub permissions at the organization level to Backstage.
+- Backstage can crawl the entire organization and manage discovery and access permissions for various groups (e.g., through GitHub teams).
+
+### Next Steps:
+- Verify the configuration changes by checking Backstage's catalog for discovered components.
+- Ensure GitHub tokens are securely managed (e.g., through environment variables or secret management).
+
+Would you like more details on setting up GitHub teams or permissions management in Backstage?
