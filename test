@@ -1,184 +1,97 @@
-To onboard GitHub groups in Backstage and give access at an organization level, you can make use of GitHub discovery and integration features provided by Backstage. Here’s how you can proceed:
+Here are the full slide contents for your year-end evaluation presentation:
 
-### 1. **GitHub Organization Integration**
-Backstage supports integration with GitHub organizations, allowing you to onboard repositories across the entire organization, not just individual repositories. Follow these steps to enable organization-wide integration:
+---
 
-- **Step 1: Update Backstage `app-config.yaml`**
-  In your Backstage configuration file (`app-config.yaml`), you can configure GitHub discovery to scan all repositories within your GitHub organization. You’ll need to include the GitHub token with appropriate permissions.
+### Slide 1: **Title Slide**
+- **Title**: Year-End Evaluation: Oct 2023 - Sep 2024
+- **Subtitle**: Open Source Contributions and Achievements
+- **Your Name**: [Your Full Name]
+- **Role**: OSPO Team Member, Senior Associate Consultant, Infosys
 
-  Here's a sample configuration:
-  ```yaml
-  integrations:
-    github:
-      - host: github.com
-        token: ${GITHUB_TOKEN}  # Ensure the token has appropriate permissions
-        apiBaseUrl: https://api.github.com
-        rawBaseUrl: https://raw.githubusercontent.com
-        organization: your-github-org-name # Specify your GitHub organization
-  ```
+---
 
-- **Step 2: Set up GitHub Discovery**
-  Backstage's GitHub discovery feature allows it to crawl all repositories under a specific GitHub organization and automatically detect any Backstage-compatible repositories. You can define this in your `catalog` configuration:
+### Slide 2: **Introduction**
+- **Role in OSPO**: Over the past year, I have been an active member of the OSPO (Open Source Program Office) team, focusing on driving open-source contributions and community engagement.
+- **Core Focus**: My primary focus has been on contributing to the Backstage community, where I worked on both code and documentation contributions to improve the platform and help build a strong developer ecosystem.
+- **Overview of Contributions**:
+  - Submitted 44+ pull requests, all merged.
+  - Contributed to custom plugin development, migration changes, and multiple bug fixes.
+  - Made over 30+ documentation updates to enhance the accessibility of Backstage resources.
+- **Community Engagement**: In addition to my technical contributions, I actively engaged with the developer community by participating in key events and delivering talks on how to contribute effectively to open source.
 
-  ```yaml
-  catalog:
-    rules:
-      - allow: [Component]
-  locations:
-    - type: github-discovery
-      target: https://github.com/your-github-org-name/*/blob/main/catalog-info.yaml
-  ```
+---
 
-  This configuration will automatically discover repositories in your GitHub organization that contain a `catalog-info.yaml` file.
+### Slide 3: **Backstage Community Contributions**
+- **Total PRs**: Submitted and merged **44+ PRs** to the Backstage community.
+  - Contributions include:
+    - Custom plugin development.
+    - Migration changes.
+    - Various bug fixes.
+    - UI enhancements.
+- **Documentation Contributions**: Made **30+ documentation changes** across multiple plugins and Backstage docs.
+  - Significant contributions to README files, developer guides, and technical documentation.
 
-### 2. **Permissions for GitHub Organization**
-Make sure the GitHub token used has the following permissions to access the organization:
-- `repo`: Full control of private repositories
-- `read:org`: Read access to organization membership
-- `workflow`: Permissions for workflows if applicable
+---
 
-### 3. **Onboard GitHub Groups**
-For onboarding GitHub groups, you can extend this setup to manage teams or groups in GitHub by defining teams as maintainers or owners in the `catalog-info.yaml` of individual repositories or components.
+### Slide 4: **Talks & Presentations**
+- **Infosys Tech-Cohere Talks**:
+  - Delivered sessions on **Open Source Contribution** and **Backstage Community Development**.
+  - Audience: Infosys internal teams and other contributors.
+  
+- **Zero to Merge 2024 Event**:
+  - Participated in **Zero to Merge** and shared insights on contributing to open source projects.
+  - Topic: **"How to Contribute to Open Source and Backstage Community"**.
 
-Example `catalog-info.yaml`:
-```yaml
-apiVersion: backstage.io/v1alpha1
-kind: Component
-metadata:
-  name: example-component
-  description: Example service
-  owner: team-name  # GitHub team that owns the service
-spec:
-  type: service
-  lifecycle: production
-```
+---
 
-This ensures that the specified GitHub team is considered the owner, and you can map roles and permissions in Backstage accordingly.
+### Slide 5: **Event Participation**
+- **Hacktoberfest 2024**:
+  - Participated and contributed to various open source projects during Hacktoberfest.
+  - Actively promoted open source involvement.
+  
+- **Zero to Merge 2024**:
+  - Contributed to Backstage during the event.
+  - Delivered talks to inspire others in open source contributions.
 
-### 4. **Granting Organization Access**
-- You will need to provide the necessary GitHub permissions at the organization level to Backstage.
-- Backstage can crawl the entire organization and manage discovery and access permissions for various groups (e.g., through GitHub teams).
+---
 
-### Next Steps:
-- Verify the configuration changes by checking Backstage's catalog for discovered components.
-- Ensure GitHub tokens are securely managed (e.g., through environment variables or secret management).
+### Slide 6: **Key Skills and Tools**
+- **Technologies Used**: JavaScript, React, TypeScript, Node.js, Backstage.
+- **Contributions to Plugins**: 
+  - Custom plugin forms.
+  - Playlist, Shortcuts, Bazaar plugin.
+  - Frontend migrations and bug fixes.
+  
+- **Documentation Contributions**: 
+  - Playlist plugin.
+  - Bazaar plugin.
+  - ADR, Code-scene, Bitrise, Terraform plugins.
 
-Would you like more details on setting up GitHub teams or permissions management in Backstage?
+---
 
+### Slide 7: **Impact of Contributions**
+- **Community Engagement**: 
+  - Helped improve Backstage's open-source ecosystem through code quality, features, and user-friendly documentation.
+- **Growth as a Contributor**:
+  - Increased expertise in Backstage plugin development and open-source best practices.
+  - Enhanced skills in community collaboration, communication, and knowledge-sharing.
 
-To further assist with onboarding GitHub teams and managing permissions in Backstage, let’s break down the key steps for setting up GitHub teams and handling role-based access control (RBAC) in Backstage.
+---
 
-1. Mapping GitHub Teams to Backstage Ownership
+### Slide 8: **Looking Forward**
+- **Plans for Continued Contribution**:
+  - Continue contributing to the Backstage ecosystem.
+  - Focus on larger-scale features, mentorship of new contributors, and active participation in open-source events.
+  - Expand involvement in high-impact areas like plugin development and documentation.
+  
+---
 
-You can use GitHub teams to define ownership of components within the Backstage catalog. This helps you assign responsibility for services, APIs, and other catalog entities to specific teams within the GitHub organization.
+### Slide 9: **Conclusion**
+- **Summary of Contributions**: Over the past year, I have made significant contributions to the Backstage community through both code and documentation. My efforts have helped improve core features, ease of use, and collaboration within the Backstage ecosystem.
+- **Growth and Learning**: Through this journey, I have gained deeper technical expertise in open-source development, improved my skills in plugin development, and expanded my knowledge of community-driven projects. Additionally, delivering talks and presentations helped sharpen my communication and mentorship skills.
+- **Looking Ahead**: I aim to continue my contributions by taking on more challenging tasks within the community, mentoring newer contributors, and exploring ways to further Infosys’ engagement with open-source projects.
+- **Final Thoughts**: I am proud of the impact I have made this year, and I look forward to continuing my contributions in the upcoming year, further solidifying Infosys' presence in the open-source landscape.
 
-Example catalog-info.yaml with Team Ownership:
+---
 
-apiVersion: backstage.io/v1alpha1
-kind: Component
-metadata:
-  name: example-service
-  description: Example microservice for demo purposes
-  owner: team-frontend  # GitHub team name
-spec:
-  type: service
-  lifecycle: production
-
-In this example, team-frontend is the owner, and members of this GitHub team will have access to this component in Backstage.
-
-2. Configuring RBAC in Backstage
-
-Backstage supports Role-Based Access Control (RBAC), allowing you to define who can view or manage certain components based on their roles or group membership.
-
-Steps to Set Up RBAC:
-
-	•	Step 1: Update Permissions Policy
-You can define a custom permissions policy in Backstage to allow or restrict access based on GitHub teams. This is done by creating a permissions policy file that specifies who has access to specific entities in the catalog.
-Here’s an example policy setup:
-
-// policies/permissions.ts
-
-import { createPermissionRule } from '@backstage/plugin-permission-node';
-import { catalogEntityReadPermission } from '@backstage/plugin-catalog-backend';
-import { GroupEntity } from '@backstage/catalog-model';
-
-export const isOwner = createPermissionRule<GroupEntity>({
-  name: 'isOwner',
-  description: 'Allow access if the user is a member of the owner team',
-  apply: (resource, user) => {
-    return resource.spec.owner === user.identity.userEntityRef;
-  },
-});
-
-export const policy = {
-  rules: {
-    catalogEntityReadPermission: isOwner,
-  },
-};
-
-	•	This policy ensures that only users belonging to the team that owns the entity can read or manage it.
-	•	Step 2: Enable the Permissions Policy
-In your app-config.yaml, reference the custom permissions policy file you created above:
-
-backend:
-  plugins:
-    permission:
-      policy: path/to/permissions.ts
-
-
-
-3. GitHub OAuth Setup
-
-To properly manage access based on GitHub teams, ensure that Backstage is integrated with GitHub OAuth. This will allow Backstage to authenticate users and map them to the appropriate GitHub teams.
-
-Steps for GitHub OAuth Integration:
-
-	•	Step 1: GitHub OAuth Setup in app-config.yaml
-Update your app-config.yaml with GitHub OAuth settings:
-
-auth:
-  environment: development
-  providers:
-    github:
-      development:
-        clientId: ${GITHUB_CLIENT_ID}
-        clientSecret: ${GITHUB_CLIENT_SECRET}
-        callbackUrl: http://localhost:7000/api/auth/github/callback
-
-
-	•	Step 2: Configure GitHub Token Permissions
-Ensure the GitHub token has the following permissions:
-	•	read:org: To read organization and team membership
-	•	repo: Access to repositories
-	•	Step 3: Assign Team Roles
-In Backstage, you can configure roles and permissions based on GitHub teams using the owner field in the catalog-info.yaml file as described earlier.
-
-4. Managing GitHub Team Roles in Backstage
-
-Backstage allows for mapping specific GitHub teams to roles like admin, editor, or viewer to control the actions they can perform on the catalog. You can create custom roles and assign them based on GitHub team membership.
-
-Example Configuration for Role Assignment:
-
-permission:
-  rules:
-    team-admin:
-      allow: [admin]
-    team-editor:
-      allow: [editor]
-    team-viewer:
-      allow: [viewer]
-
-Step-by-Step Process:
-
-	•	Map GitHub teams to specific roles using Backstage’s RBAC system.
-	•	Define roles such as admin, editor, and viewer based on team membership.
-	•	Implement custom rules using the Backstage permission plugin to enforce these roles.
-
-Summary of What’s Needed:
-
-	1.	Onboard GitHub teams by mapping them to Backstage components using catalog-info.yaml.
-	2.	Set up RBAC with policies that allow access based on GitHub team ownership.
-	3.	Integrate GitHub OAuth to authenticate users and associate them with their respective GitHub teams.
-	4.	Manage permissions using the Backstage permission system, ensuring proper access control.
-
-Let me know if you need detailed guidance on any specific step, and I can walk you through the process.
+These contents are structured to highlight your work, impact, and future goals effectively. Let me know if you'd like any further adjustments or additions!
