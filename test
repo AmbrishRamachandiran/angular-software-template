@@ -1,97 +1,49 @@
-Here are the full slide contents for your year-end evaluation presentation:
+Here’s how you can structure the content for the two slides based on your input:
 
 ---
 
-### Slide 1: **Title Slide**
-- **Title**: Year-End Evaluation: Oct 2023 - Sep 2024
-- **Subtitle**: Open Source Contributions and Achievements
-- **Your Name**: [Your Full Name]
-- **Role**: OSPO Team Member, Senior Associate Consultant, Infosys
+### Slide 1: **Account Activities and Achievements**
 
----
-
-### Slide 2: **Introduction**
-- **Role in OSPO**: Over the past year, I have been an active member of the OSPO (Open Source Program Office) team, focusing on driving open-source contributions and community engagement.
-- **Core Focus**: My primary focus has been on contributing to the Backstage community, where I worked on both code and documentation contributions to improve the platform and help build a strong developer ecosystem.
-- **Overview of Contributions**:
-  - Submitted 44+ pull requests, all merged.
-  - Contributed to custom plugin development, migration changes, and multiple bug fixes.
-  - Made over 30+ documentation updates to enhance the accessibility of Backstage resources.
-- **Community Engagement**: In addition to my technical contributions, I actively engaged with the developer community by participating in key events and delivering talks on how to contribute effectively to open source.
-
----
-
-### Slide 3: **Backstage Community Contributions**
-- **Total PRs**: Submitted and merged **44+ PRs** to the Backstage community.
-  - Contributions include:
+- **Open Source Contributions (OSPO Account)**:
+  - Contributed to the **Backstage** open-source project with **30+ PRs** raised, of which **18+ PRs** have been successfully merged.
+  - Focus areas: 
     - Custom plugin development.
-    - Migration changes.
-    - Various bug fixes.
-    - UI enhancements.
-- **Documentation Contributions**: Made **30+ documentation changes** across multiple plugins and Backstage docs.
-  - Significant contributions to README files, developer guides, and technical documentation.
+    - Documentation improvements and migration changes.
+    - Active participation in both code and non-code contributions.
+
+- **Talks & Presentations**:
+  - **Infosys Tech-Cohere Talks**: Delivered insightful talks on **Backstage** and **open source contributions** to encourage internal teams to engage with open-source projects.
+  - **Zero to Merge Event**: Gave talks on **how to contribute to open source** and **Backstage**, helping others learn how to start their contribution journey.
+
+- **Achievements**:
+  - **Infosys RISE Award**: Recognized as a **Tech Domain Maestro** for my contributions in open source.
+  - **Appreciation Certification**: Received certification for **Tech-Cohere talks** on **Backstage**.
+  - **Tech-Cohere Technology Award**: Honored with a **Tech Open Source** award for my role in open-source initiatives.
 
 ---
 
-### Slide 4: **Talks & Presentations**
-- **Infosys Tech-Cohere Talks**:
-  - Delivered sessions on **Open Source Contribution** and **Backstage Community Development**.
-  - Audience: Infosys internal teams and other contributors.
+### Slide 2: **OSPO Activities, Learning, DQ Score, and Achievements**
+
+- **OSPO Activities**:
+  - Actively contributed to the **open-source Backstage community**, including both code and non-code contributions.
+  - Supported internal and external events such as **Zero to Merge** and **Hacktoberfest**, promoting open-source awareness and contribution.
   
-- **Zero to Merge 2024 Event**:
-  - Participated in **Zero to Merge** and shared insights on contributing to open source projects.
-  - Topic: **"How to Contribute to Open Source and Backstage Community"**.
+- **Learning & Certifications**:
+  - Completed several **Infosys certifications** to expand technical knowledge:
+    - Infosys Certified **Front-End Developer**.
+    - Infosys Certified Professional - **Generative AI for All**.
+    - Infosys Certified **Open Chain Practitioner**.
+    - Infosys Certified **MySQL Associate**.
+    - Infosys Certified **Spring Boot Developer**.
+    - Infosys Certified Generative AI Professional - **Intermediate**, **Foundation**, and **Applied**.
+  - Acquired **skills tags**:
+    - **Open Source Professional**.
+    - **Digital Interactions Professional**.
+    - **AI Consumer**.
+
+- **DQ Score**: 
+  - Achieved a **DQ score of 85**, reflecting consistent quality in contributions and project management.
 
 ---
 
-### Slide 5: **Event Participation**
-- **Hacktoberfest 2024**:
-  - Participated and contributed to various open source projects during Hacktoberfest.
-  - Actively promoted open source involvement.
-  
-- **Zero to Merge 2024**:
-  - Contributed to Backstage during the event.
-  - Delivered talks to inspire others in open source contributions.
-
----
-
-### Slide 6: **Key Skills and Tools**
-- **Technologies Used**: JavaScript, React, TypeScript, Node.js, Backstage.
-- **Contributions to Plugins**: 
-  - Custom plugin forms.
-  - Playlist, Shortcuts, Bazaar plugin.
-  - Frontend migrations and bug fixes.
-  
-- **Documentation Contributions**: 
-  - Playlist plugin.
-  - Bazaar plugin.
-  - ADR, Code-scene, Bitrise, Terraform plugins.
-
----
-
-### Slide 7: **Impact of Contributions**
-- **Community Engagement**: 
-  - Helped improve Backstage's open-source ecosystem through code quality, features, and user-friendly documentation.
-- **Growth as a Contributor**:
-  - Increased expertise in Backstage plugin development and open-source best practices.
-  - Enhanced skills in community collaboration, communication, and knowledge-sharing.
-
----
-
-### Slide 8: **Looking Forward**
-- **Plans for Continued Contribution**:
-  - Continue contributing to the Backstage ecosystem.
-  - Focus on larger-scale features, mentorship of new contributors, and active participation in open-source events.
-  - Expand involvement in high-impact areas like plugin development and documentation.
-  
----
-
-### Slide 9: **Conclusion**
-- **Summary of Contributions**: Over the past year, I have made significant contributions to the Backstage community through both code and documentation. My efforts have helped improve core features, ease of use, and collaboration within the Backstage ecosystem.
-- **Growth and Learning**: Through this journey, I have gained deeper technical expertise in open-source development, improved my skills in plugin development, and expanded my knowledge of community-driven projects. Additionally, delivering talks and presentations helped sharpen my communication and mentorship skills.
-- **Looking Ahead**: I aim to continue my contributions by taking on more challenging tasks within the community, mentoring newer contributors, and exploring ways to further Infosys’ engagement with open-source projects.
-- **Final Thoughts**: I am proud of the impact I have made this year, and I look forward to continuing my contributions in the upcoming year, further solidifying Infosys' presence in the open-source landscape.
-
----
-
-These contents are structured to highlight your work, impact, and future goals effectively. Let me know if you'd like any further adjustments or additions!
+These contents cover your account activities, contributions, achievements, learning, and certifications effectively. Let me know if you'd like any further modifications!
