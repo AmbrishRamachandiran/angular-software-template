@@ -1,49 +1,15 @@
-Here’s how you can structure the content for the two slides based on your input:
+Subject: Upcoming Planned Leaves and Work Updates
 
----
+Hello Team,
 
-### Slide 1: **Account Activities and Achievements**
+I wanted to inform you about my upcoming planned leaves. I’ll be away on the 30th of October and the 1st of November. I’ll resume any pending tasks as soon as I’m back.
 
-- **Open Source Contributions (OSPO Account)**:
-  - Contributed to the **Backstage** open-source project with **30+ PRs** raised, of which **18+ PRs** have been successfully merged.
-  - Focus areas: 
-    - Custom plugin development.
-    - Documentation improvements and migration changes.
-    - Active participation in both code and non-code contributions.
+Here are a few updates on my current projects:
 
-- **Talks & Presentations**:
-  - **Infosys Tech-Cohere Talks**: Delivered insightful talks on **Backstage** and **open source contributions** to encourage internal teams to engage with open-source projects.
-  - **Zero to Merge Event**: Gave talks on **how to contribute to open source** and **Backstage**, helping others learn how to start their contribution journey.
+- **OpenFGA Plugin**: Preparing this plugin for open-sourcing, with Black Duck scanning in progress.
+- **iLead Plugin**: Working on implementing this plugin for internal teams, with ongoing configuration of new EKS endpoints alongside the iLead team.
 
-- **Achievements**:
-  - **Infosys RISE Award**: Recognized as a **Tech Domain Maestro** for my contributions in open source.
-  - **Appreciation Certification**: Received certification for **Tech-Cohere talks** on **Backstage**.
-  - **Tech-Cohere Technology Award**: Honored with a **Tech Open Source** award for my role in open-source initiatives.
+Please feel free to reach out if anything needs my attention before I leave. 
 
----
-
-### Slide 2: **OSPO Activities, Learning, DQ Score, and Achievements**
-
-- **OSPO Activities**:
-  - Actively contributed to the **open-source Backstage community**, including both code and non-code contributions.
-  - Supported internal and external events such as **Zero to Merge** and **Hacktoberfest**, promoting open-source awareness and contribution.
-  
-- **Learning & Certifications**:
-  - Completed several **Infosys certifications** to expand technical knowledge:
-    - Infosys Certified **Front-End Developer**.
-    - Infosys Certified Professional - **Generative AI for All**.
-    - Infosys Certified **Open Chain Practitioner**.
-    - Infosys Certified **MySQL Associate**.
-    - Infosys Certified **Spring Boot Developer**.
-    - Infosys Certified Generative AI Professional - **Intermediate**, **Foundation**, and **Applied**.
-  - Acquired **skills tags**:
-    - **Open Source Professional**.
-    - **Digital Interactions Professional**.
-    - **AI Consumer**.
-
-- **DQ Score**: 
-  - Achieved a **DQ score of 85**, reflecting consistent quality in contributions and project management.
-
----
-
-These contents cover your account activities, contributions, achievements, learning, and certifications effectively. Let me know if you'd like any further modifications!
+Best Regards,  
+[Your Name]
