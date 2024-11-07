@@ -1,212 +1,27 @@
-client.ts
-
-
-
-import { ConfigApi } from '@backstage/core-plugin-api';
-import fetch from 'node-fetch';
-
-interface OpenFgaRequest {
-  tuple_key: { user: string; relation: string; object: string };
-  authorization_model_id: string;
-}
-
-interface OpenFgaResponse {
-  allowed: boolean;
-  ok?: boolean;
-  message: string;
-}
-
-let permissionResponse: OpenFgaResponse | null = null;
-
-export function getPermissionResponse(): OpenFgaResponse | null {
-  return permissionResponse;
-}
-
-// Send Permission Request using configuration from app-config.yaml
-export async function sendPermissionRequest(
-  config: ConfigApi, // Inject ConfigApi to fetch configuration from app-config.yaml
-  entityName: string,
-  action: string,
-  userName: any
-): Promise<OpenFgaResponse> {
-  // Access configuration values from app-config.yaml using ConfigApi
-  const openFgaBaseUrl = config.getString('openFga.baseUrl');
-  const openFgaStoreId = config.getString('openFga.storeId');
-  const authorizationModelId = config.getString('openFga.authorizationModelId');
-
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/check`;
-
-  // Determine relation based on action type (delete or read)
-  const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read';
-
-  const requestBody: OpenFgaRequest = {
-    tuple_key: {
-      user: `${userName}`,
-      relation,
-      object: `catalog_entity:${entityName}`,
-    },
-    authorization_model_id: authorizationModelId,
-  };
-
-  // Perform the fetch request to the OpenFGA API
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenFGA API call failed with status: ${response.status}`);
-  }
-
-  const data = await response.json() as OpenFgaResponse;
-  permissionResponse = data;
-  return data;
-}
-
-// Add Policy for a specific entity, action, and user
-export async function addPolicy(
-  config: ConfigApi, // Inject ConfigApi to fetch configuration from app-config.yaml
-  entityName: string,
-  accessType: string,
-  userName: any
-): Promise<OpenFgaResponse> {
-  // Access configuration values from app-config.yaml using ConfigApi
-  const openFgaBaseUrl = config.getString('openFga.baseUrl');
-  const openFgaStoreId = config.getString('openFga.storeId');
-  const authorizationModelId = config.getString('openFga.authorizationModelId');
-
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
-
-  const requestBody = {
-    writes: {
-      tuple_keys: [
-        {
-          _description: `Add ${userName} as ${accessType} on catalog_entity:${entityName}`,
-          user: `${userName}`,
-          relation: accessType,
-          object: `catalog_entity:${entityName}`,
-        },
-      ],
-    },
-    authorization_model_id: authorizationModelId,
-  };
-
-  // Perform the fetch request to add the policy
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  const data = await response.json() as OpenFgaResponse;
-  return data;
-}
-
-// Revoke Policy for a specific entity, action, and user
-export async function revokePolicy(
-  config: ConfigApi, // Inject ConfigApi to fetch configuration from app-config.yaml
-  entityName: string,
-  accessType: string,
-  userName: any
-): Promise<OpenFgaResponse> {
-  // Access configuration values from app-config.yaml using ConfigApi
-  const openFgaBaseUrl = config.getString('openFga.baseUrl');
-  const openFgaStoreId = config.getString('openFga.storeId');
-  const authorizationModelId = config.getString('openFga.authorizationModelId');
-
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
-
-  const requestBody = {
-    deletes: {
-      tuple_keys: [
-        {
-          _description: `Revoke ${userName} as ${accessType} on catalog_entity:${entityName}`,
-          user: `${userName}`,
-          relation: accessType,
-          object: `catalog_entity:${entityName}`,
-        },
-      ],
-    },
-    authorization_model_id: authorizationModelId,
-  };
-
-  // Perform the fetch request to revoke the policy
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  const data = await response.json() as OpenFgaResponse;
-  return data;
-}
-
-module.ts
-
 import { createBackendModule } from '@backstage/backend-plugin-api';
 import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
-import { AOpenFgaCatalogPolicy } from './policy';
-import { configApiRef, ConfigApi } from '@backstage/core-plugin-api';
+import { configApiRef, ConfigApi } from '@backstage/core-plugin-api'; // Import ConfigApi
 
-// Registering your backend module
+import { AOpenFgaCatalogPolicy } from './policy';
+
+// Export AnalyticsContext separately if needed (though this is not part of the current change)
+export { AnalyticsContext } from './AnalyticsContext';
+
 export const permissionModuleACatalogPolicy = createBackendModule({
   pluginId: 'permission',
   moduleId: 'a-name-policy',
   register(reg) {
     reg.registerInit({
-      deps: { policy: policyExtensionPoint, configApi: configApiRef }, // Injecting ConfigApi
-      async init({ policy, configApi }) {
-        const openFgaApi = new AOpenFgaCatalogPolicy(configApi); // Passing ConfigApi to your policy handler
+      deps: { policy: policyExtensionPoint, configApi: configApiRef }, // Inject ConfigApi
+      async init({ policy, configApi }: { policy: any; configApi: ConfigApi }) { // Use proper typing
+        // Now you can use configApi to fetch configuration from app-config.yaml
+        const openFgaBaseUrl = configApi.getString('openFga.baseUrl');
+        const openFgaStoreId = configApi.getString('openFga.storeId');
+        const authorizationModelId = configApi.getString('openFga.authorizationModelId');
 
-        policy.setPolicy(openFgaApi);
+        // Register the policy
+        policy.setPolicy(new AOpenFgaCatalogPolicy({ openFgaBaseUrl, openFgaStoreId, authorizationModelId }));
       },
     });
   },
 });
-
-
-policy.ts
-
-
-import { ConfigApi } from '@backstage/core-plugin-api';
-import { AuthorizeResult, PolicyDecision, isResourcePermission } from '@backstage/plugin-permission-common';
-import { PermissionPolicy, PolicyQuery } from '@backstage/plugin-permission-node';
-import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
-import { sendPermissionRequest } from './client';
-
-export class AOpenFgaCatalogPolicy implements PermissionPolicy {
-  private readonly config: ConfigApi;
-
-  constructor(config: ConfigApi) {
-    this.config = config;
-  }
-
-  async handle(request: PolicyQuery, user: BackstageIdentityResponse): Promise<PolicyDecision> {
-    if (isResourcePermission(request.permission, 'catalog-entity')) {
-      if (request.permission.name === 'catalog.entity.delete') {
-        const entityName = 'example-website'; // You can replace this with dynamic entity fetching
-        const userName = user.identity.ownershipEntityRefs;
-
-        if (!entityName) {
-          return { result: AuthorizeResult.DENY };
-        }
-
-        try {
-          const response = await sendPermissionRequest(this.config, entityName, 'Delete', userName);
-
-          return response.allowed
-            ? { result: AuthorizeResult.ALLOW }
-            : { result: AuthorizeResult.DENY };
-        } catch (error) {
-          console.error('Error checking permission:', error);
-          return { result: AuthorizeResult.DENY };
-        }
-      }
-
-      return { result: AuthorizeResult.ALLOW };
-    }
-
-    return { result: AuthorizeResult.DENY };
-  }
-}
