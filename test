@@ -1,5 +1,163 @@
-policy ts
+// client.ts
+import fetch from 'node-fetch';
 
+interface OpenFgaRequest {
+  tuple_key: { user: string; relation: string; object: string };
+  authorization_model_id: string;
+}
+
+interface OpenFgaResponse {
+  allowed: boolean;
+  ok?: boolean;
+  message: string;
+}
+
+let permissionResponse: OpenFgaResponse | null = null;
+
+export function getPermissionResponse(): OpenFgaResponse | null {
+  return permissionResponse;
+}
+
+const openFgaBaseUrl = 'http://localhost:8080';
+const openFgaStoreId = '01JAW9SS1WBX5GG8GPR87WA3NE';
+const authorizationModelId = '01JAW9TRAASCJT070G92GHZV62';
+
+export async function sendPermissionRequest(
+  entityName: string,
+  action: string,
+  userName: any
+): Promise<OpenFgaResponse> {
+  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/check`;
+
+  const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read';
+
+  const requestBody: OpenFgaRequest = {
+    tuple_key: {
+      user: `${userName}`,
+      relation,
+      object: `catalog_entity:${entityName}`,
+    },
+    authorization_model_id: authorizationModelId,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenFGA API call failed with status: ${response.status}`);
+  }
+
+  const data = await response.json() as OpenFgaResponse;
+  permissionResponse = data;
+  return data;
+}
+
+export async function addPolicy(entityName: string, accessType: string, userName: any): Promise<OpenFgaResponse> {
+  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
+
+  const requestBody = {
+    writes: {
+      tuple_keys: [
+        {
+          _description: `Add ${userName} as ${accessType} on catalog_entity:${entityName}`,
+          user: `${userName}`,
+          relation: accessType,
+          object: `catalog_entity:${entityName}`,
+        },
+      ],
+    },
+    authorization_model_id: authorizationModelId,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json() as OpenFgaResponse;
+  return data;
+}
+
+export async function revokePolicy(entityName: string, accessType: string, userName: any): Promise<OpenFgaResponse> {
+  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
+
+  const requestBody = {
+    deletes: {
+      tuple_keys: [
+        {
+          _description: `Revoke ${userName} as ${accessType} on catalog_entity:${entityName}`,
+          user: `${userName}`,
+          relation: accessType,
+          object: `catalog_entity:${entityName}`,
+        },
+      ],
+    },
+    authorization_model_id: authorizationModelId,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json() as OpenFgaResponse;
+  return data;
+}
+
+
+
+// Module.ts
+import { AOpenFgaCatalogPolicy } from './policy';
+import { createBackendModule } from '@backstage/backend-plugin-api';
+import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
+
+export const permissionModuleACatalogPolicy = createBackendModule({
+  pluginId: 'permission',
+  moduleId: 'a-name-policy',
+  register(reg) {
+    reg.registerInit({
+      deps: { policy: policyExtensionPoint },
+      async init({ policy }) {
+        policy.setPolicy(new AOpenFgaCatalogPolicy());
+      },
+    });
+  },
+});
+
+
+
+// Plugin.ts
+import {
+  createPlugin,
+  createRoutableExtension,
+} from '@backstage/core-plugin-api';
+
+import { rootRouteRef } from './routes';
+
+export const openfgaPlugin = createPlugin({
+  id: 'openfga',
+  routes: {
+    root: rootRouteRef,
+  },
+});
+
+export const OpenfgaPage = openfgaPlugin.provide(
+  createRoutableExtension({
+    name: 'OpenfgaPage',
+    component: () =>
+      import('./components/HeaderComponent').then(m => m.HeaderComponent),
+    mountPoint: rootRouteRef,
+  }),
+);
+
+
+
+// Policy.ts
 import {
   AuthorizeResult,
   PolicyDecision,
@@ -10,17 +168,9 @@ import {
   PolicyQuery,
 } from '@backstage/plugin-permission-node';
 import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
-import { OpenFgaClient } from './client';
-import { ConfigApi, configApiRef } from '@backstage/core-plugin-api';
+import { sendPermissionRequest } from './client';
 
 export class AOpenFgaCatalogPolicy implements PermissionPolicy {
-  private openFgaClient: OpenFgaClient;
-
-  constructor(config: ConfigApi) {
-    // Pass the config to OpenFgaClient
-    this.openFgaClient = new OpenFgaClient(config);
-  }
-
   async handle(
     request: PolicyQuery,
     user: BackstageIdentityResponse,
@@ -38,8 +188,8 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
         }
 
         try {
-          // Send a permission request using the OpenFGA client instance
-          const response = await this.openFgaClient.sendPermissionRequest(
+          // Send a permission request to the OpenFGA API
+          const response = await sendPermissionRequest(
             entityName,
             'Delete',
             userName,
@@ -64,24 +214,3 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
   }
 }
 
-
-
-module ts
-
-import { AOpenFgaCatalogPolicy } from './policy';
-import { createBackendModule } from '@backstage/backend-plugin-api';
-import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
-import { configApiRef } from '@backstage/core-plugin-api';
-
-export const permissionModuleACatalogPolicy = createBackendModule({
-  pluginId: 'permission',
-  moduleId: 'a-name-policy',
-  register(reg) {
-    reg.registerInit({
-      deps: { policy: policyExtensionPoint, config: configApiRef },
-      async init({ policy, config }) {
-        policy.setPolicy(new AOpenFgaCatalogPolicy(config));
-      },
-    });
-  },
-});
