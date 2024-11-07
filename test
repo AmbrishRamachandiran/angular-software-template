@@ -1,15 +1,114 @@
-Subject: Upcoming Planned Leaves and Work Updates
+import fetch from 'node-fetch';
+import { Config } from '@backstage/config';
 
-Hello Team,
+interface OpenFgaRequest {
+  tuple_key: { user: string; relation: string; object: string };
+  authorization_model_id: string;
+}
 
-I wanted to inform you about my upcoming planned leaves. I’ll be away on the 30th of October and the 1st of November. I’ll resume any pending tasks as soon as I’m back.
+interface OpenFgaResponse {
+  allowed: boolean;
+  ok?: boolean;
+  message: string;
+}
 
-Here are a few updates on my current projects:
+let permissionResponse: OpenFgaResponse | null = null;
 
-- **OpenFGA Plugin**: Preparing this plugin for open-sourcing, with Black Duck scanning in progress.
-- **iLead Plugin**: Working on implementing this plugin for internal teams, with ongoing configuration of new EKS endpoints alongside the iLead team.
+export function getPermissionResponse(): OpenFgaResponse | null {
+  return permissionResponse;
+}
 
-Please feel free to reach out if anything needs my attention before I leave. 
+export class OpenFgaClient {
+  private baseUrl: string;
+  private storeId: string;
+  private authorizationModelId: string;
 
-Best Regards,  
-[Your Name]
+  constructor(config: Config) {
+    this.baseUrl = config.getString('openga.baseUrl');
+    this.storeId = config.getString('openga.storeId');
+    this.authorizationModelId = config.getString('openga.authorizationModelId');
+  }
+
+  async sendPermissionRequest(entityName: string, action: string, userName: any): Promise<OpenFgaResponse> {
+    const url = `${this.baseUrl}/stores/${this.storeId}/check`;
+
+    const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read';
+
+    const requestBody: OpenFgaRequest = {
+      tuple_key: {
+        user: `${userName}`,
+        relation,
+        object: `catalog_entity:${entityName}`,
+      },
+      authorization_model_id: this.authorizationModelId,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenFGA API call failed with status: ${response.status}`);
+    }
+
+    const data = await response.json() as OpenFgaResponse;
+    permissionResponse = data;
+    return data;
+  }
+
+  async addPolicy(entityName: string, accessType: string, userName: any): Promise<OpenFgaResponse> {
+    const url = `${this.baseUrl}/stores/${this.storeId}/write`;
+
+    const requestBody = {
+      writes: {
+        tuple_keys: [
+          {
+            _description: `Add ${userName} as ${accessType} on catalog_entity:${entityName}`,
+            user: `${userName}`,
+            relation: accessType,
+            object: `catalog_entity:${entityName}`
+          }
+        ]
+      },
+      authorization_model_id: this.authorizationModelId
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json() as OpenFgaResponse;
+    return data;
+  }
+
+  async revokePolicy(entityName: string, accessType: string, userName: any): Promise<OpenFgaResponse> {
+    const url = `${this.baseUrl}/stores/${this.storeId}/write`;
+
+    const requestBody = {
+      deletes: {
+        tuple_keys: [
+          {
+            _description: `Revoke ${userName} as ${accessType} on catalog_entity:${entityName}`,
+            user: `${userName}`,
+            relation: accessType,
+            object: `catalog_entity:${entityName}`
+          }
+        ]
+      },
+      authorization_model_id: this.authorizationModelId
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json() as OpenFgaResponse;
+    return data;
+  }
+}
