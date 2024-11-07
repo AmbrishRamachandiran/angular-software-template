@@ -1,5 +1,7 @@
 // client.ts
 import fetch from 'node-fetch';
+import { ConfigApi, configApiRef } from '@backstage/core-plugin-api';
+import { createApiRef, ApiProvider } from '@backstage/core-plugin-api';
 
 interface OpenFgaRequest {
   tuple_key: { user: string; relation: string; object: string };
@@ -18,16 +20,43 @@ export function getPermissionResponse(): OpenFgaResponse | null {
   return permissionResponse;
 }
 
-const openFgaBaseUrl = 'http://localhost:8080';
-const openFgaStoreId = '01JAW9SS1WBX5GG8GPR87WA3NE';
-const authorizationModelId = '01JAW9TRAASCJT070G92GHZV62';
+export const openFgaApiRef = createApiRef<OpenFgaApi>({
+  id: 'plugin.openfga.api',
+});
+
+export interface OpenFgaApi {
+  getBaseUrl(): string;
+  getStoreId(): string;
+  getAuthorizationModelId(): string;
+}
+
+export class OpenFgaApiImpl implements OpenFgaApi {
+  private readonly config: ConfigApi;
+
+  constructor(config: ConfigApi) {
+    this.config = config;
+  }
+
+  getBaseUrl(): string {
+    return this.config.getString('openFga.baseUrl');
+  }
+
+  getStoreId(): string {
+    return this.config.getString('openFga.storeId');
+  }
+
+  getAuthorizationModelId(): string {
+    return this.config.getString('openFga.authorizationModelId');
+  }
+}
 
 export async function sendPermissionRequest(
+  config: OpenFgaApi,
   entityName: string,
   action: string,
   userName: any
 ): Promise<OpenFgaResponse> {
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/check`;
+  const url = `${config.getBaseUrl()}/stores/${config.getStoreId()}/check`;
 
   const relation = action.toLowerCase() === 'delete' ? 'catalog_entity_delete' : 'catalog_entity_read';
 
@@ -37,7 +66,7 @@ export async function sendPermissionRequest(
       relation,
       object: `catalog_entity:${entityName}`,
     },
-    authorization_model_id: authorizationModelId,
+    authorization_model_id: config.getAuthorizationModelId(),
   };
 
   const response = await fetch(url, {
@@ -55,8 +84,13 @@ export async function sendPermissionRequest(
   return data;
 }
 
-export async function addPolicy(entityName: string, accessType: string, userName: any): Promise<OpenFgaResponse> {
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
+export async function addPolicy(
+  config: OpenFgaApi,
+  entityName: string,
+  accessType: string,
+  userName: any
+): Promise<OpenFgaResponse> {
+  const url = `${config.getBaseUrl()}/stores/${config.getStoreId()}/write`;
 
   const requestBody = {
     writes: {
@@ -69,7 +103,7 @@ export async function addPolicy(entityName: string, accessType: string, userName
         },
       ],
     },
-    authorization_model_id: authorizationModelId,
+    authorization_model_id: config.getAuthorizationModelId(),
   };
 
   const response = await fetch(url, {
@@ -82,8 +116,13 @@ export async function addPolicy(entityName: string, accessType: string, userName
   return data;
 }
 
-export async function revokePolicy(entityName: string, accessType: string, userName: any): Promise<OpenFgaResponse> {
-  const url = `${openFgaBaseUrl}/stores/${openFgaStoreId}/write`;
+export async function revokePolicy(
+  config: OpenFgaApi,
+  entityName: string,
+  accessType: string,
+  userName: any
+): Promise<OpenFgaResponse> {
+  const url = `${config.getBaseUrl()}/stores/${config.getStoreId()}/write`;
 
   const requestBody = {
     deletes: {
@@ -96,7 +135,7 @@ export async function revokePolicy(entityName: string, accessType: string, userN
         },
       ],
     },
-    authorization_model_id: authorizationModelId,
+    authorization_model_id: config.getAuthorizationModelId(),
   };
 
   const response = await fetch(url, {
@@ -115,46 +154,25 @@ export async function revokePolicy(entityName: string, accessType: string, userN
 import { AOpenFgaCatalogPolicy } from './policy';
 import { createBackendModule } from '@backstage/backend-plugin-api';
 import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
+import { ConfigApi, configApiRef } from '@backstage/core-plugin-api';
+import { OpenFgaApiImpl } from './client';
 
 export const permissionModuleACatalogPolicy = createBackendModule({
   pluginId: 'permission',
   moduleId: 'a-name-policy',
   register(reg) {
     reg.registerInit({
-      deps: { policy: policyExtensionPoint },
-      async init({ policy }) {
-        policy.setPolicy(new AOpenFgaCatalogPolicy());
+      deps: { policy: policyExtensionPoint, config: configApiRef },
+      async init({ policy, config }) {
+        // Initialize OpenFGA API with the configuration
+        const openFgaApi = new OpenFgaApiImpl(config);
+
+        // Set policy and pass the OpenFga API to it
+        policy.setPolicy(new AOpenFgaCatalogPolicy(openFgaApi));
       },
     });
   },
 });
-
-
-
-// Plugin.ts
-import {
-  createPlugin,
-  createRoutableExtension,
-} from '@backstage/core-plugin-api';
-
-import { rootRouteRef } from './routes';
-
-export const openfgaPlugin = createPlugin({
-  id: 'openfga',
-  routes: {
-    root: rootRouteRef,
-  },
-});
-
-export const OpenfgaPage = openfgaPlugin.provide(
-  createRoutableExtension({
-    name: 'OpenfgaPage',
-    component: () =>
-      import('./components/HeaderComponent').then(m => m.HeaderComponent),
-    mountPoint: rootRouteRef,
-  }),
-);
-
 
 
 // Policy.ts
@@ -168,9 +186,16 @@ import {
   PolicyQuery,
 } from '@backstage/plugin-permission-node';
 import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
+import { OpenFgaApi } from './client';
 import { sendPermissionRequest } from './client';
 
 export class AOpenFgaCatalogPolicy implements PermissionPolicy {
+  private openFgaApi: OpenFgaApi;
+
+  constructor(openFgaApi: OpenFgaApi) {
+    this.openFgaApi = openFgaApi;
+  }
+
   async handle(
     request: PolicyQuery,
     user: BackstageIdentityResponse,
@@ -178,8 +203,8 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     // Check if the request is for catalog-entity permissions
     if (isResourcePermission(request.permission, 'catalog-entity')) {
       if (request.permission.name === 'catalog.entity.delete') {
-        // Currently entityname is hardcoded, Load Entity based on the entity selection if possible
-        const entityName = 'example-website';
+        // The entity name could be dynamically loaded
+        const entityName = 'example-website'; // Replace with dynamic entity selection
         const userName = user.identity.ownershipEntityRefs;
 
         if (!entityName) {
@@ -190,6 +215,7 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
         try {
           // Send a permission request to the OpenFGA API
           const response = await sendPermissionRequest(
+            this.openFgaApi,
             entityName,
             'Delete',
             userName,
@@ -213,4 +239,3 @@ export class AOpenFgaCatalogPolicy implements PermissionPolicy {
     return { result: AuthorizeResult.DENY };
   }
 }
-
