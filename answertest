@@ -1,74 +1,55 @@
 import {
-  AuthorizeResult,
-  PolicyDecision,
-  isResourcePermission,
-} from '@backstage/plugin-permission-common';
-import {
-  PermissionPolicy,
+  Policy,
   PolicyQuery,
+  PolicyDecision,
   PolicyQueryUser,
-} from '@backstage/plugin-permission-node';
-import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
-import { ConfigApi, DiscoveryApi } from '@backstage/core-plugin-api';
-import { openFgaPolicyEvaluator } from './openFgaPolicyEvaluator';
-import { parseEntityRef } from '@backstage/catalog-model'; // Import entity reference parser
+} from '@backstage/plugin-permission-common';
+import { CatalogClient } from '@backstage/catalog-client';
+import { Config } from '@backstage/config';
+import { OpenFGAPolicyEvaluator } from '../openfgaPolicyEvaluator'; // Ensure the correct import path
 
-export class OpenFgaCatalogPolicy implements PermissionPolicy {
-  private openFgaClient: openFgaPolicyEvaluator;
+export class CustomPolicy implements Policy {
+  private readonly catalogClient: CatalogClient;
+  private readonly openFgaPolicyEvaluator: OpenFGAPolicyEvaluator;
 
-  constructor(configApi: ConfigApi, discoveryApi: DiscoveryApi) {
-    this.openFgaClient = openFgaPolicyEvaluator.fromConfig(
-      configApi,
-      discoveryApi,
-    );
+  constructor(config: Config) {
+    this.catalogClient = new CatalogClient({ discoveryApi: config.getString('backend.baseUrl') });
+    this.openFgaPolicyEvaluator = new OpenFGAPolicyEvaluator(config);
   }
 
   async handle(
-    request: PolicyQuery,
-    user?: PolicyQueryUser,
+    query: PolicyQuery,
+    user?: PolicyQueryUser
   ): Promise<PolicyDecision> {
-    const identityUser = user as BackstageIdentityResponse;
+    const { permission } = query;
 
-    // Check if the request is for catalog-entity permissions
-    if (isResourcePermission(request.permission, 'catalog-entity')) {
-      if (request.permission.name === 'catalog.entity.delete' && request.resource) {
-        try {
-          // Ensure request.resource is a string (resource reference)
-          if (typeof request.resource !== 'string') {
-            console.warn('PolicyQuery resource is missing or invalid');
-            return { result: AuthorizeResult.DENY };
-          }
+    // Fetch entities dynamically from Backstage catalog
+    const entities = await this.catalogClient.getEntities({
+      filter: { kind: 'Component' }, // Modify this filter based on requirements
+    });
 
-          // Extract entity name dynamically from request.resource
-          const entityRef = parseEntityRef(request.resource);
-          const entityName = entityRef.name; // Get entity name
-          const userName = identityUser?.identity.ownershipEntityRefs;
-
-          if (!entityName) {
-            return { result: AuthorizeResult.DENY };
-          }
-
-          // Send permission request to OpenFGA
-          const response = await this.openFgaClient.sendPermissionRequest(
-            entityName,
-            'Delete',
-            userName,
-          );
-
-          return response.allowed
-            ? { result: AuthorizeResult.ALLOW }
-            : { result: AuthorizeResult.DENY };
-        } catch (error) {
-          console.error('Error extracting entity from request:', error);
-          return { result: AuthorizeResult.DENY };
-        }
-      }
-
-      // Allow other catalog-entity permissions
-      return { result: AuthorizeResult.ALLOW };
+    if (!entities.items || entities.items.length === 0) {
+      return { result: 'DENY' };
     }
 
-    // Deny all other permissions by default
-    return { result: AuthorizeResult.DENY };
+    // Find entity based on permission name
+    const entity = entities.items.find(e => e.metadata.name === permission.name);
+    if (!entity) {
+      return { result: 'DENY' };
+    }
+
+    // Ensure user identity exists
+    if (!user || !user.info || !user.info.entityRef) {
+      return { result: 'DENY' };
+    }
+
+    // Evaluate permission using OpenFGAPolicyEvaluator
+    const isAllowed = await this.openFgaPolicyEvaluator.evaluate({
+      user: user.info.entityRef,
+      entity: entity.metadata.name,
+      action: permission.name, // Modify this according to your OpenFGA schema
+    });
+
+    return isAllowed ? { result: 'ALLOW' } : { result: 'DENY' };
   }
 }
