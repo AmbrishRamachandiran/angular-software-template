@@ -31,10 +31,10 @@ export class OpenFgaCatalogPolicy implements PermissionPolicy {
 
     // Check if the request is for catalog-entity permissions
     if (isResourcePermission(request.permission, 'catalog-entity')) {
-      if (request.permission.name === 'catalog.entity.delete' && request.resource) {
+      if (request.permission.name === 'catalog.entity.delete' && request.resourceRef) {
         try {
-          // Extract entity name dynamically from the request.resource
-          const entityRef = parseEntityRef(request.resource);
+          // Extract entity name dynamically from request.resourceRef
+          const entityRef = parseEntityRef(request.resourceRef);
           const entityName = entityRef.name; // Get entity name
           const userName = identityUser?.identity.ownershipEntityRefs;
 
@@ -66,4 +66,3 @@ export class OpenFgaCatalogPolicy implements PermissionPolicy {
     return { result: AuthorizeResult.DENY };
   }
 }
-
