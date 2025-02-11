@@ -1,39 +1,254 @@
-Backstage Framework: The Key to Developer Productivity and Collaboration
+module.ts
 
-Agenda
-	1.	Introduction
-	•	What is Backstage?
-	•	A platform to organize and manage all your tools, documentation, and services in one place.
-	•	Why do developers and teams need Backstage?
-	•	Common challenges: scattered tools, lack of visibility, repetitive manual tasks.
-	•	Backstage makes it easier to collaborate, find information, and get work done faster.
-	2.	How Backstage Boosts Developer Productivity
-	•	The Software Catalog
-	•	A central place to find and manage all your projects, services, and tools.
-	•	Example: Search for a service and see who owns it, its documentation, and related tools.
-	•	The Scaffolder
-	•	Automates the creation of new projects, like setting up repositories or CI/CD pipelines.
-	•	Example: Use a pre-built template to create a React app in minutes.
-	•	TechDocs
-	•	Built-in system for managing project documentation.
-	•	Helps teams keep docs updated and easy to access.
-	3.	How Backstage Improves Team Collaboration
-	•	Teams can clearly assign and track who owns what services.
-	•	All tools and documentation are integrated into one platform, reducing the need to switch between systems.
-	•	Custom plugins allow teams to add features specific to their workflows (e.g., shared resources or ideas).
-	4.	Why Backstage is Important for Organizations
-	•	Works for small teams and large organizations.
-	•	Helps teams standardize their processes and improve efficiency.
-	•	Used by companies like Spotify, Netflix, and more to manage their development workflows.
-	5.	Demo (Optional)
-	•	A step-by-step example of how Backstage works:
-	•	Find a project in the catalog.
-	•	Use a template to create a new project.
-	•	View project documentation in TechDocs.
-	6.	Q&A and Next Steps
-	•	Answer questions from the audience.
-	•	How to try Backstage:
-	•	Install it locally or use the demo instance.
-	•	Explore the documentation and community resources.
+import { OpenFgaCatalogPolicy } from './policy';
+import {
+  coreServices,
+  createBackendModule,
+} from '@backstage/backend-plugin-api';
+import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
 
-This agenda introduces key concepts in a way that’s easy for beginners to understand. Let me know if you’d like help preparing slides, examples, or a demo script!
+export const permissionModuleOpenFGAPolicy = createBackendModule({
+  pluginId: 'permission',
+  moduleId: 'openfga-policy',
+  register(reg) {
+    reg.registerInit({
+      deps: {
+        config: coreServices.rootConfig,
+        policy: policyExtensionPoint,
+        discovery: coreServices.discovery,
+      },
+      async init({ config, policy, discovery }) {
+        policy.setPolicy(new OpenFgaCatalogPolicy(config, discovery));
+      },
+    });
+  },
+});
+
+
+policy.ts
+
+import {
+  AuthorizeResult,
+  PolicyDecision,
+  isResourcePermission,
+} from '@backstage/plugin-permission-common';
+import {
+  PermissionPolicy,
+  PolicyQuery,
+  PolicyQueryUser,
+} from '@backstage/plugin-permission-node';
+import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
+import { ConfigApi, DiscoveryApi } from '@backstage/core-plugin-api';
+import { openFgaPolicyEvaluator } from './openFgaPolicyEvaluator';
+
+export class OpenFgaCatalogPolicy implements PermissionPolicy {
+  private openFgaClient: openFgaPolicyEvaluator;
+
+  constructor(configApi: ConfigApi, discoveryApi: DiscoveryApi) {
+    this.openFgaClient = openFgaPolicyEvaluator.fromConfig(
+      configApi,
+      discoveryApi,
+    );
+  }
+
+  async handle(
+    request: PolicyQuery,
+    user?: PolicyQueryUser,
+  ): Promise<PolicyDecision> {
+    const identityUser = user as BackstageIdentityResponse;
+
+    // Check if the request is for catalog-entity permissions
+    if (isResourcePermission(request.permission, 'catalog-entity')) {
+      if (request.permission.name === 'catalog.entity.delete') {
+        // Currently entityName is hardcoded, Load Entity based on the entity selection if possible
+        const entityName = 'example-website';
+        const userName = identityUser?.identity.ownershipEntityRefs;
+
+        if (!entityName) {
+          // If entity name is not provided, deny the permission
+          return { result: AuthorizeResult.DENY };
+        }
+
+        try {
+          // Send a permission request to the OpenFGA API using the client instance
+          const response = await this.openFgaClient.sendPermissionRequest(
+            entityName,
+            'Delete',
+            userName,
+          );
+
+          // Return ALLOW or DENY based on the response from the OpenFGA API
+          return response.allowed
+            ? { result: AuthorizeResult.ALLOW }
+            : { result: AuthorizeResult.DENY };
+        } catch (error) {
+          console.error('Error checking permission:', error);
+          return { result: AuthorizeResult.DENY };
+        }
+      }
+
+      // For other catalog-entity permissions, you can add additional conditions here
+      return { result: AuthorizeResult.ALLOW };
+    }
+
+    // Deny all other permissions by default
+    return { result: AuthorizeResult.DENY };
+  }
+}
+
+
+openfgapolicyEvalutor.ts
+
+import { ConfigApi, DiscoveryApi } from '@backstage/core-plugin-api';
+import { ResponseError } from '@backstage/errors';
+import { OpenFgaApi } from '@infosys_ltd/backstage-plugin-openfga-common';
+import { OpenFgaRequest, OpenFgaResponse } from '@infosys_ltd/backstage-plugin-openfga-common';
+
+export class openFgaPolicyEvaluator implements OpenFgaApi {
+  readonly discoveryApi: DiscoveryApi;
+  private readonly baseUrl: string;
+  private readonly storeId: string;
+  private readonly authorizationModelId: string;
+  private permissionResponse: OpenFgaResponse | null;
+
+  static fromConfig(
+    configApi: ConfigApi,
+    discoveryApi: DiscoveryApi,
+  ) {
+    const baseUrl: string = configApi.getOptionalString('openfga.baseUrl') ?? '';
+    const storeId: string = configApi.getOptionalString('openfga.storeId') ?? '';
+    const authorizationModelId: string = configApi.getOptionalString('openfga.authorizationModelId') ?? '';
+
+    if (!storeId || !authorizationModelId) {
+      console.error('Missing configuration values for OpenFGA. Please check your app-config.yaml.');
+    }
+
+    return new openFgaPolicyEvaluator({
+      discoveryApi,
+      baseUrl,
+      storeId,
+      authorizationModelId,
+    });
+  }
+
+  constructor(opts: {
+    discoveryApi: DiscoveryApi;
+    baseUrl: string;
+    storeId: string;
+    authorizationModelId: string;
+  }) {
+    this.discoveryApi = opts.discoveryApi;
+    this.baseUrl = opts.baseUrl;
+    this.storeId = opts.storeId;
+    this.authorizationModelId = opts.authorizationModelId;
+    this.permissionResponse = null;
+  }
+
+  public getPermissionResponse(): OpenFgaResponse | null {
+    return this.permissionResponse;
+  }
+
+  private async fetch<T = any>(input: string, init?: RequestInit): Promise<T> {
+    const apiUrl = `${this.baseUrl}${input}`;
+    const response = await fetch(apiUrl, init);
+    if (!response.ok) {
+      throw await ResponseError.fromResponse(response);
+    }
+
+    return await response.json();
+  }
+
+  public async sendPermissionRequest(
+    entityName: string,
+    action: string,
+    userName: any,
+  ): Promise<OpenFgaResponse> {
+    const url = `/stores/${this.storeId}/check`;
+
+    const relation =
+      typeof action === 'string' && action.toLowerCase() === 'delete'
+        ? 'catalog_entity_delete'
+        : 'catalog_entity_read';
+
+    const requestBody: OpenFgaRequest = {
+      tuple_key: {
+        user: `${userName}`,
+        relation,
+        object: `catalog_entity:${entityName}`,
+      },
+      authorization_model_id: this.authorizationModelId,
+    };
+
+    const response = await this.fetch<OpenFgaResponse>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    this.permissionResponse = response;
+    return response;
+  }
+
+  public async addPolicy(
+    entityName: string,
+    accessType: string,
+    userName: any,
+  ): Promise<OpenFgaResponse> {
+    const url = `/stores/${this.storeId}/write`;
+
+    const requestBody = {
+      writes: {
+        tuple_keys: [
+          {
+            user: `${userName}`,
+            relation: accessType,
+            object: `catalog_entity:${entityName}`,
+          },
+        ],
+      },
+      authorization_model_id: this.authorizationModelId,
+    };
+
+    const response = await this.fetch<OpenFgaResponse>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    return response;
+  }
+
+  public async revokePolicy(
+    entityName: string,
+    accessType: string,
+    userName: any,
+  ): Promise<OpenFgaResponse> {
+    const url = `/stores/${this.storeId}/write`;
+
+    const requestBody = {
+      deletes: {
+        tuple_keys: [
+          {
+            user: `${userName}`,
+            relation: accessType,
+            object: `catalog_entity:${entityName}`,
+          },
+        ],
+      },
+      authorization_model_id: this.authorizationModelId,
+    };
+
+    const response = await this.fetch<OpenFgaResponse>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    return response;
+  }
+}
+
+
+currently the in the policy file the entity name is hardcoded instead that get the current entity that user opened in the backstage component catalog and 
+
+evaluate that entity in the policyevaluator file and get the result.
