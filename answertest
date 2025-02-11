@@ -66,3 +66,4 @@ export class OpenFgaCatalogPolicy implements PermissionPolicy {
     return { result: AuthorizeResult.DENY };
   }
 }
+
