@@ -1,1 +1,68 @@
+import {
+  AuthorizeResult,
+  PolicyDecision,
+  isResourcePermission,
+} from '@backstage/plugin-permission-common';
+import {
+  PermissionPolicy,
+  PolicyQuery,
+  PolicyQueryUser,
+} from '@backstage/plugin-permission-node';
+import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
+import { ConfigApi, DiscoveryApi } from '@backstage/core-plugin-api';
+import { openFgaPolicyEvaluator } from './openFgaPolicyEvaluator';
 
+export class OpenFgaCatalogPolicy implements PermissionPolicy {
+  private openFgaClient: openFgaPolicyEvaluator;
+
+  constructor(configApi: ConfigApi, discoveryApi: DiscoveryApi) {
+    this.openFgaClient = openFgaPolicyEvaluator.fromConfig(
+      configApi,
+      discoveryApi,
+    );
+  }
+
+  async handle(
+    request: PolicyQuery,
+    user?: PolicyQueryUser,
+  ): Promise<PolicyDecision> {
+    const identityUser = user as BackstageIdentityResponse;
+
+    // Check if the request is for catalog-entity permissions
+    if (isResourcePermission(request.permission, 'catalog-entity')) {
+      if (request.permission.name === 'catalog.entity.delete') {
+        // Dynamically extract the entity name from the request resource reference
+        const entityName = request.resourceRef?.split('/').pop(); // Extracts the entity name
+        const userName = identityUser?.identity.ownershipEntityRefs;
+
+        if (!entityName) {
+          // If entity name is not provided, deny the permission
+          return { result: AuthorizeResult.DENY };
+        }
+
+        try {
+          // Send a permission request to OpenFGA using the client instance
+          const response = await this.openFgaClient.sendPermissionRequest(
+            entityName,
+            'Delete',
+            userName,
+          );
+
+          // Return ALLOW or DENY based on the OpenFGA API response
+          return response.allowed
+            ? { result: AuthorizeResult.ALLOW }
+            : { result: AuthorizeResult.DENY };
+        } catch (error) {
+          console.error('Error checking permission:', error);
+          return { result: AuthorizeResult.DENY };
+        }
+      }
+
+      // Allow other catalog-entity permissions
+      return { result: AuthorizeResult.ALLOW };
+    }
+
+    // Deny all other permissions by default
+    return { result: AuthorizeResult.DENY };
+  }
+}
