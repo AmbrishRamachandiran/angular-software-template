@@ -11,6 +11,7 @@ import {
 import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
 import { ConfigApi, DiscoveryApi } from '@backstage/core-plugin-api';
 import { openFgaPolicyEvaluator } from './openFgaPolicyEvaluator';
+import { parseEntityRef } from '@backstage/catalog-model'; // Import entity reference parser
 
 export class OpenFgaCatalogPolicy implements PermissionPolicy {
   private openFgaClient: openFgaPolicyEvaluator;
@@ -30,30 +31,29 @@ export class OpenFgaCatalogPolicy implements PermissionPolicy {
 
     // Check if the request is for catalog-entity permissions
     if (isResourcePermission(request.permission, 'catalog-entity')) {
-      if (request.permission.name === 'catalog.entity.delete') {
-        // Dynamically extract the entity name from the request resource reference
-        const entityName = request.resourceRef?.split('/').pop(); // Extracts the entity name
-        const userName = identityUser?.identity.ownershipEntityRefs;
-
-        if (!entityName) {
-          // If entity name is not provided, deny the permission
-          return { result: AuthorizeResult.DENY };
-        }
-
+      if (request.permission.name === 'catalog.entity.delete' && request.resource) {
         try {
-          // Send a permission request to OpenFGA using the client instance
+          // Extract entity name dynamically from the request.resource
+          const entityRef = parseEntityRef(request.resource);
+          const entityName = entityRef.name; // Get entity name
+          const userName = identityUser?.identity.ownershipEntityRefs;
+
+          if (!entityName) {
+            return { result: AuthorizeResult.DENY };
+          }
+
+          // Send permission request to OpenFGA
           const response = await this.openFgaClient.sendPermissionRequest(
             entityName,
             'Delete',
             userName,
           );
 
-          // Return ALLOW or DENY based on the OpenFGA API response
           return response.allowed
             ? { result: AuthorizeResult.ALLOW }
             : { result: AuthorizeResult.DENY };
         } catch (error) {
-          console.error('Error checking permission:', error);
+          console.error('Error extracting entity from request:', error);
           return { result: AuthorizeResult.DENY };
         }
       }
