@@ -1,1 +1,1 @@
-Property 'resourceRef' does not exist on type 'PolicyQuery'.
+Property 'resource' does not exist on type 'PolicyQuery'.
