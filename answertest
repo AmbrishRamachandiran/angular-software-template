@@ -1,38 +1,42 @@
-import { parseEntityRef } from '@backstage/catalog-model';
+import { PermissionPolicy } from '@backstage/plugin-permission-node';
+import {
+  AuthorizeResult,
+  isResourcePermission,
+} from '@backstage/plugin-permission-common';
+import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
+import { OpenFgaPolicyEvaluator } from './OpenFgaPolicyEvaluator';
 
-async handle(
-  request: PolicyQuery,
-  user?: PolicyQueryUser,
-): Promise<PolicyDecision> {
-  const identityUser = user as BackstageIdentityResponse;
+export class OpenFgaCatalogPolicy implements PermissionPolicy {
+  private readonly openFgaClient: OpenFgaPolicyEvaluator;
 
-  // Check if the request is for catalog-entity permissions
-  if (isResourcePermission(request.permission, 'catalog-entity')) {
-    if (request.permission.name === 'catalog.entity.delete') {
-      // Extract entity name dynamically from request.resourceType and request.resourceId
-      const entityName = request.resourceId ?? null; 
-
-      if (!entityName) {
-        return { result: AuthorizeResult.DENY };
-      }
-
-      const userName = identityUser?.identity.ownershipEntityRefs;
-
-      try {
-        // Send a permission request to OpenFGA
-        const response = await this.openFgaClient.sendPermissionRequest(
-          entityName,
-          'Delete',
-          userName,
-        );
-
-        return response ? { result: AuthorizeResult.ALLOW } : { result: AuthorizeResult.DENY };
-      } catch (error) {
-        console.error('OpenFGA request failed:', error);
-        return { result: AuthorizeResult.DENY };
-      }
-    }
+  constructor(openFgaClient: OpenFgaPolicyEvaluator) {
+    this.openFgaClient = openFgaClient;
   }
 
-  return { result: AuthorizeResult.DENY };
+  async handle(request: any, user?: BackstageIdentityResponse) {
+    const identityUser = user?.identity?.userEntityRef;
+
+    if (!identityUser) {
+      return { result: AuthorizeResult.DENY };
+    }
+
+    if (isResourcePermission(request.permission, 'catalog-entity')) {
+      // Dynamically fetch the entity reference
+      const entityRef = request.resourceRef || request.resource?.name;
+
+      if (!entityRef) {
+        return { result: AuthorizeResult.DENY };
+      }
+
+      const isAllowed = await this.openFgaClient.isAllowed({
+        user: identityUser,
+        action: request.permission.name,
+        resource: entityRef, // Use the dynamically obtained entity name
+      });
+
+      return { result: isAllowed ? AuthorizeResult.ALLOW : AuthorizeResult.DENY };
+    }
+
+    return { result: AuthorizeResult.DENY };
+  }
 }
