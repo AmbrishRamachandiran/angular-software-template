@@ -9,8 +9,8 @@ async handle(
   // Check if the request is for catalog-entity permissions
   if (isResourcePermission(request.permission, 'catalog-entity')) {
     if (request.permission.name === 'catalog.entity.delete') {
-      // Extract entity name dynamically from resourceRef
-      const entityRef = request.resourceRef;
+      // Extract entity name dynamically from request.resource
+      const entityRef = request.resource ? request.resource.toString() : null;
       const entityName = entityRef ? parseEntityRef(entityRef).name : null;
 
       if (!entityName) {
