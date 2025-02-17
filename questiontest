@@ -1,827 +1,163 @@
-policyquery have this
+import {
+  AuthorizeResult,
+  PolicyDecision,
+  isResourcePermission,
+} from '@backstage/plugin-permission-common';
+import { CatalogClient, CatalogApi } from '@backstage/catalog-client';
+import {
+  PermissionPolicy,
+  PolicyQuery,
+  PolicyQueryUser,
+} from '@backstage/plugin-permission-node';
+import { BackstageIdentityResponse } from '@backstage/plugin-auth-node';
+import { ConfigApi, DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { openFgaPolicyEvaluator } from './openFgaPolicyEvaluator';
 
-import { PermissionCriteria, AllOfCriteria, AnyOfCriteria, NotCriteria, PermissionRuleParams, PermissionCondition, ResourcePermission, ConditionalPolicyDecision, IdentifiedPermissionMessage, DefinitivePolicyDecision, MetadataResponseSerializedRule as MetadataResponseSerializedRule$1, MetadataResponse as MetadataResponse$1, PolicyDecision, Permission, QueryPermissionRequest, AuthorizePermissionRequest, AuthorizePermissionResponse } from '@backstage/plugin-permission-common';
-import { z } from 'zod';
-import express from 'express';
-import { BackstageUserIdentity } from '@backstage/plugin-auth-node';
-import { BackstageCredentials, BackstageUserInfo, PermissionsService, DiscoveryService, AuthService, PermissionsServiceRequestOptions } from '@backstage/backend-plugin-api';
-import { TokenManager } from '@backstage/backend-common';
-import { Config } from '@backstage/config';
+export class OpenFgaCatalogPolicy implements PermissionPolicy {
+  private openFgaClient: openFgaPolicyEvaluator;
+  private catalogApi: CatalogApi;
+  private identityApi: IdentityApi;
 
-/**
- * Prevent use of type parameter from contributing to type inference.
- *
- * https://github.com/Microsoft/TypeScript/issues/14829#issuecomment-980401795
- * @ignore
- */
-type NoInfer<T> = T extends infer S ? S : never;
-/**
- * Utility function used to parse a PermissionCriteria
- * @param criteria - a PermissionCriteria
- * @public
- *
- * @returns `true` if the permission criteria is of type allOf,
- * narrowing down `criteria` to the specific type.
- */
-declare const isAndCriteria: <T>(criteria: PermissionCriteria<T>) => criteria is AllOfCriteria<T>;
-/**
- * Utility function used to parse a PermissionCriteria of type
- * @param criteria - a PermissionCriteria
- * @public
- *
- * @returns `true` if the permission criteria is of type anyOf,
- * narrowing down `criteria` to the specific type.
- */
-declare const isOrCriteria: <T>(criteria: PermissionCriteria<T>) => criteria is AnyOfCriteria<T>;
-/**
- * Utility function used to parse a PermissionCriteria
- * @param criteria - a PermissionCriteria
- * @public
- *
- * @returns `true` if the permission criteria is of type not,
- * narrowing down `criteria` to the specific type.
- */
-declare const isNotCriteria: <T>(criteria: PermissionCriteria<T>) => criteria is NotCriteria<T>;
+  constructor(configApi: ConfigApi, discoveryApi: DiscoveryApi, identityApi: IdentityApi, catalogApi?: CatalogApi) {
+    this.openFgaClient = openFgaPolicyEvaluator.fromConfig(
+      configApi,
+      discoveryApi,
+    );
+    this.identityApi = identityApi;
+    // Initialize CatalogApi if not provided
+    this.catalogApi = catalogApi || new CatalogClient({ discoveryApi });
+    console.log('CatalogApi initialized:', !!this.catalogApi);
+  }
 
-/**
- * A conditional rule that can be provided in an
- * {@link @backstage/plugin-permission-common#AuthorizeDecision} response to an authorization request.
- *
- * @remarks
- *
- * Rules can either be evaluated against a resource loaded in memory, or used as filters when
- * loading a collection of resources from a data source. The `apply` and `toQuery` methods implement
- * these two concepts.
- *
- * The two operations should always have the same logical result. If they don’t, the effective
- * outcome of an authorization operation will sometimes differ depending on how the authorization
- * check was performed.
- *
- * @public
- */
-type PermissionRule<TResource, TQuery, TResourceType extends string, TParams extends PermissionRuleParams = PermissionRuleParams> = {
-    name: string;
-    description: string;
-    resourceType: TResourceType;
-    /**
-     * A ZodSchema that reflects the structure of the parameters that are passed to
-     */
-    paramsSchema?: z.ZodSchema<TParams>;
-    /**
-     * Apply this rule to a resource already loaded from a backing data source. The params are
-     * arguments supplied for the rule; for example, a rule could be `isOwner` with entityRefs as the
-     * params.
-     */
-    apply(resource: TResource, params: NoInfer<TParams>): boolean;
-    /**
-     * Translate this rule to criteria suitable for use in querying a backing data store. The criteria
-     * can be used for loading a collection of resources efficiently with conditional criteria already
-     * applied.
-     */
-    toQuery(params: NoInfer<TParams>): PermissionCriteria<TQuery>;
-};
+  async handle(
+    request: PolicyQuery,
+    user?: PolicyQueryUser,
+  ): Promise<PolicyDecision> {
+    const identityUser = user as BackstageIdentityResponse;
 
-/**
- * Creates a condition factory function for a given authorization rule and parameter types.
- *
- * @remarks
- *
- * For example, an isEntityOwner rule for catalog entities might take an array of entityRef strings.
- * The rule itself defines _how_ to check a given resource, whereas a condition also includes _what_
- * to verify.
- *
- * Plugin authors should generally use the {@link createConditionExports} in order to efficiently
- * create multiple condition factories. This helper should generally only be used to construct
- * condition factories for third-party rules that aren't part of the backend plugin with which
- * they're intended to integrate.
- *
- * @public
- */
-declare const createConditionFactory: <TResourceType extends string, TParams extends PermissionRuleParams = PermissionRuleParams>(rule: PermissionRule<unknown, unknown, TResourceType, TParams>) => (params: TParams) => PermissionCondition<TResourceType, TParams>;
+    // Check if the request is for catalog-entity permissions
+    if (isResourcePermission(request.permission, 'catalog-entity')) {
+      if (request.permission.name === 'catalog.entity.delete') {
+        // Fetch the entity name dynamically
+        const entityName = await this.getEntityName(request, identityUser);
+        console.log(entityName, "entityName");
+        const userName = identityUser?.identity.ownershipEntityRefs;
 
-/**
- * A utility type for mapping a single {@link PermissionRule} to its
- * corresponding {@link @backstage/plugin-permission-common#PermissionCondition}.
- *
- * @public
- */
-type Condition<TRule> = TRule extends PermissionRule<any, any, infer TResourceType, infer TParams> ? undefined extends TParams ? () => PermissionCondition<TResourceType, TParams> : (params: TParams) => PermissionCondition<TResourceType, TParams> : never;
-/**
- * A utility type for mapping {@link PermissionRule}s to their corresponding
- * {@link @backstage/plugin-permission-common#PermissionCondition}s.
- *
- * @public
- */
-type Conditions<TRules extends Record<string, PermissionRule<any, any, any>>> = {
-    [Name in keyof TRules]: Condition<TRules[Name]>;
-};
-/**
- * Creates the recommended condition-related exports for a given plugin based on
- * the built-in {@link PermissionRule}s it supports.
- *
- * @remarks
- *
- * The function returns a `conditions` object containing a
- * {@link @backstage/plugin-permission-common#PermissionCondition} factory for
- * each of the supplied {@link PermissionRule}s, along with a
- * `createConditionalDecision` function which builds the wrapper object needed
- * to enclose conditions when authoring {@link PermissionPolicy}
- * implementations.
- *
- * Plugin authors should generally call this method with all the built-in
- * {@link PermissionRule}s the plugin supports, and export the resulting
- * `conditions` object and `createConditionalDecision` function so that they can
- * be used by {@link PermissionPolicy} authors.
- *
- * @public
- */
-declare const createConditionExports: <TResourceType extends string, TResource, TRules extends Record<string, PermissionRule<TResource, any, TResourceType>>>(options: {
-    pluginId: string;
-    resourceType: TResourceType;
-    rules: TRules;
-}) => {
-    conditions: Conditions<TRules>;
-    createConditionalDecision: (permission: ResourcePermission<TResourceType>, conditions: PermissionCriteria<PermissionCondition<TResourceType>>) => ConditionalPolicyDecision;
-};
+        if (!entityName) {
+          // If entity name is not provided, deny the permission
+          return { result: AuthorizeResult.DENY };
+        }
 
-/**
- * A function which accepts {@link @backstage/plugin-permission-common#PermissionCondition}s
- * logically grouped in a {@link @backstage/plugin-permission-common#PermissionCriteria}
- * object, and transforms the {@link @backstage/plugin-permission-common#PermissionCondition}s
- * into plugin specific query fragments while retaining the enclosing criteria shape.
- *
- * @public
- */
-type ConditionTransformer<TQuery> = (conditions: PermissionCriteria<PermissionCondition>) => PermissionCriteria<TQuery>;
-/**
- * A higher-order helper function which accepts an array of
- * {@link PermissionRule}s, and returns a {@link ConditionTransformer}
- * which transforms input conditions into equivalent plugin-specific
- * query fragments using the supplied rules.
- *
- * @public
- */
-declare const createConditionTransformer: <TQuery, TRules extends PermissionRule<any, TQuery, string>[]>(permissionRules: [...TRules]) => ConditionTransformer<TQuery>;
+        try {
+          // Send a permission request to the OpenFGA API using the client instance
+          const response = await this.openFgaClient.sendPermissionRequest(
+            entityName,
+            'Delete',
+            userName,
+          );
 
-/**
- * A request to load the referenced resource and apply conditions in order to
- * finalize a conditional authorization response.
- *
- * @public
- */
-type ApplyConditionsRequestEntry = IdentifiedPermissionMessage<{
-    resourceRef: string;
-    resourceType: string;
-    conditions: PermissionCriteria<PermissionCondition>;
-}>;
-/**
- * A batch of {@link ApplyConditionsRequestEntry} objects.
- *
- * @public
- */
-type ApplyConditionsRequest = {
-    items: ApplyConditionsRequestEntry[];
-};
-/**
- * The result of applying the conditions, expressed as a definitive authorize
- * result of ALLOW or DENY.
- *
- * @public
- */
-type ApplyConditionsResponseEntry = IdentifiedPermissionMessage<DefinitivePolicyDecision>;
-/**
- * A batch of {@link ApplyConditionsResponseEntry} objects.
- *
- * @public
- */
-type ApplyConditionsResponse = {
-    items: ApplyConditionsResponseEntry[];
-};
-/**
- * Serialized permission rules, with the paramsSchema
- * converted from a ZodSchema to a JsonSchema.
- *
- * @public
- * @deprecated Please import from `@backstage/plugin-permission-common` instead.
- */
-type MetadataResponseSerializedRule = MetadataResponseSerializedRule$1;
-/**
- * Response type for the .metadata endpoint.
- *
- * @public
- * @deprecated Please import from `@backstage/plugin-permission-common` instead.
- */
-type MetadataResponse = MetadataResponse$1;
-/**
- * Takes some permission conditions and returns a definitive authorization result
- * on the resource to which they apply.
- *
- * @public
- */
-declare const createConditionAuthorizer: <TResource, TQuery>(rules: PermissionRule<TResource, TQuery, string>[]) => (decision: PolicyDecision, resource: TResource | undefined) => boolean;
-/**
- * Options for creating a permission integration router specific
- * for a particular resource type.
- *
- * @public
- */
-type CreatePermissionIntegrationRouterResourceOptions<TResourceType extends string, TResource> = {
-    resourceType: TResourceType;
-    permissions?: Array<Permission>;
-    rules: PermissionRule<TResource, any, NoInfer<TResourceType>>[];
-    getResources?: (resourceRefs: string[]) => Promise<Array<TResource | undefined>>;
-};
-/**
- * Options for creating a permission integration router exposing
- * permissions and rules from multiple resource types.
- *
- * @public
- */
-type PermissionIntegrationRouterOptions<TResourceType1 extends string = string, TResource1 = any, TResourceType2 extends string = string, TResource2 = any, TResourceType3 extends string = string, TResource3 = any> = {
-    resources: Readonly<[
-        CreatePermissionIntegrationRouterResourceOptions<TResourceType1, TResource1>
-    ] | [
-        CreatePermissionIntegrationRouterResourceOptions<TResourceType1, TResource1>,
-        CreatePermissionIntegrationRouterResourceOptions<TResourceType2, TResource2>
-    ] | [
-        CreatePermissionIntegrationRouterResourceOptions<TResourceType1, TResource1>,
-        CreatePermissionIntegrationRouterResourceOptions<TResourceType2, TResource2>,
-        CreatePermissionIntegrationRouterResourceOptions<TResourceType3, TResource3>
-    ]>;
-};
-/**
- * Create an express Router which provides an authorization route to allow
- * integration between the permission backend and other Backstage backend
- * plugins. Plugin owners that wish to support conditional authorization for
- * their resources should add the router created by this function to their
- * express app inside their `createRouter` implementation.
- *
- * In case the `permissions` option is provided, the router also
- * provides a route that exposes permissions and routes of a plugin.
- *
- * In case resources is provided, the routes can handle permissions
- * for multiple resource types.
- *
- * @remarks
- *
- * To make this concrete, we can use the Backstage software catalog as an
- * example. The catalog has conditional rules around access to specific
- * _entities_ in the catalog. The _type_ of resource is captured here as
- * `resourceType`, a string identifier (`catalog-entity` in this example) that
- * can be provided with permission definitions. This is merely a _type_ to
- * verify that conditions in an authorization policy are constructed correctly,
- * not a reference to a specific resource.
- *
- * The `rules` parameter is an array of {@link PermissionRule}s that introduce
- * conditional filtering logic for resources; for the catalog, these are things
- * like `isEntityOwner` or `hasAnnotation`. Rules describe how to filter a list
- * of resources, and the `conditions` returned allow these rules to be applied
- * with specific parameters (such as 'group:default/team-a', or
- * 'backstage.io/edit-url').
- *
- * The `getResources` argument should load resources based on a reference
- * identifier. For the catalog, this is an
- * {@link @backstage/catalog-model#EntityRef}. For other plugins, this can be
- * any serialized format. This is used to construct the
- * `createPermissionIntegrationRouter`, a function to add an authorization route
- * to your backend plugin. This function will be called by the
- * `permission-backend` when authorization conditions relating to this plugin
- * need to be evaluated.
- *
- * @public
- */
-declare function createPermissionIntegrationRouter<TResourceType1 extends string, TResource1, TResourceType2 extends string, TResource2, TResourceType3 extends string, TResource3>(options: {
-    permissions: Array<Permission>;
-} | CreatePermissionIntegrationRouterResourceOptions<TResourceType1, TResource1> | PermissionIntegrationRouterOptions<TResourceType1, TResource1, TResourceType2, TResource2, TResourceType3, TResource3>): express.Router;
+          // Return ALLOW or DENY based on the response from the OpenFGA API
+          return response.allowed
+            ? { result: AuthorizeResult.ALLOW }
+            : { result: AuthorizeResult.DENY };
+        } catch (error) {
+          console.error('Error checking permission:', error);
+          return { result: AuthorizeResult.DENY };
+        }
+      }
 
-/**
- * Helper function to ensure that {@link PermissionRule} definitions are typed correctly.
- *
- * @public
- */
-declare const createPermissionRule: <TResource, TQuery, TResourceType extends string, TParams extends PermissionRuleParams = undefined>(rule: PermissionRule<TResource, TQuery, TResourceType, TParams>) => PermissionRule<TResource, TQuery, TResourceType, TParams>;
-/**
- * Helper for making plugin-specific createPermissionRule functions, that have
- * the TResource and TQuery type parameters populated but infer the params from
- * the supplied rule. This helps ensure that rules created for this plugin use
- * consistent types for the resource and query.
- *
- * @public
- */
-declare const makeCreatePermissionRule: <TResource, TQuery, TResourceType extends string>() => <TParams extends PermissionRuleParams = undefined>(rule: PermissionRule<TResource, TQuery, TResourceType, TParams>) => PermissionRule<TResource, TQuery, TResourceType, TParams>;
+      // For other catalog-entity permissions, you can add additional conditions here
+      return { result: AuthorizeResult.ALLOW };
+    }
 
-/**
- * A query to be evaluated by the {@link PermissionPolicy}.
- *
- * @remarks
- *
- * Unlike other parts of the permission API, the policy does not accept a resource ref. This keeps
- * the policy decoupled from the resource loading and condition applying logic.
- *
- * @public
- */
-type PolicyQuery = {
-    permission: Permission;
-};
-/**
- * The context within which a policy query is evaluated.
- *
- * @public
- */
-type PolicyQueryUser = {
-    /**
-     * The token used to authenticate the user within Backstage.
-     *
-     * @deprecated User the `credentials` field in combination with `coreServices.auth` to generate a request token instead.
-     */
-    token: string;
-    /**
-     * The number of seconds until the token expires. If not set, it can be assumed that the token does not expire.
-     *
-     * @deprecated This field is deprecated and will be removed in a future release.
-     */
-    expiresInSeconds?: number;
-    /**
-     * A plaintext description of the identity that is encapsulated within the token.
-     *
-     * @deprecated Use the `info` field instead.
-     */
-    identity: BackstageUserIdentity;
-    /**
-     * The credentials of the user making the request.
-     */
-    credentials: BackstageCredentials;
-    /**
-     * The information for the user making the request.
-     */
-    info: BackstageUserInfo;
-};
-/**
- * A policy to evaluate authorization requests for any permissioned action performed in Backstage.
- *
- * @remarks
- *
- * This takes as input a permission and an optional Backstage identity, and should return ALLOW if
- * the user is permitted to execute that action; otherwise DENY. For permissions relating to
- * resources, such a catalog entities, a conditional response can also be returned. This states
- * that the action is allowed if the conditions provided hold true.
- *
- * Conditions are a rule, and parameters to evaluate against that rule. For example, the rule might
- * be `isOwner` and the parameters a collection of entityRefs; if one of the entityRefs matches
- * the `owner` field on a catalog entity, this would resolve to ALLOW.
- *
- * @public
- */
-interface PermissionPolicy {
-    handle(request: PolicyQuery, user?: PolicyQueryUser): Promise<PolicyDecision>;
+    // Deny all other permissions by default
+    return { result: AuthorizeResult.DENY };
+  }
+
+  // Method to fetch the entity name dynamically
+  private async getEntityName(request: PolicyQuery, identityUser?: BackstageIdentityResponse): Promise<string | undefined> {
+    // Example logic to fetch the entity reference from the request or user information
+    let entityRef = this.extractEntityRefFromRequest(request, identityUser);
+    console.log(`Extracted entityRef: ${entityRef}`);
+    if (!entityRef) {
+      console.error('Entity reference is not available.');
+      return undefined;
+    }
+
+    // Ensure the entityRef is in the correct format
+    entityRef = this.formatEntityRef(entityRef);
+    console.log(`Formatted entityRef: ${entityRef}`);
+
+    try {
+      // Get the Backstage identity token from identityUser
+      const token = identityUser?.token;
+      if (!token) {
+        console.error('Token is not available.');
+        return undefined;
+      }
+
+      console.log(`Fetching entity with ref: ${entityRef} and token: ${token}`);
+      
+      // Attempt to fetch the entity using getEntityByRef
+      const entity = await this.catalogApi.getEntityByRef(entityRef, { token });
+      console.log(`Fetched entity: ${entity}`);
+
+      // If entity is not found, try to list all entities and find the matching one
+      if (!entity) {
+        console.error('Entity is not found using getEntityByRef.');
+
+        const entitiesResponse = await this.catalogApi.getEntities({
+          filter: { 'metadata.name': this.extractEntityNameFromRef(entityRef) },
+        }, { token });
+
+        console.log(`Entities response: ${JSON.stringify(entitiesResponse)}`);
+        if (entitiesResponse.items.length > 0) {
+          const foundEntity = entitiesResponse.items.find(item => item.metadata.name === this.extractEntityNameFromRef(entityRef));
+          console.log(`Found entity: ${foundEntity}`);
+          return foundEntity?.metadata.name;
+        } else {
+          console.error('Entity is not found in the catalog.');
+          return undefined;
+        }
+      }
+
+      if (!entity.metadata) {
+        console.error('Metadata is not available on the entity.');
+        return undefined;
+      }
+
+      if (!entity.metadata.name) {
+        console.error('Entity name is not available in metadata.');
+        return undefined;
+      }
+
+      return entity.metadata.name;
+    } catch (error) {
+      console.error('Error fetching entity:', error);
+      return undefined;
+    }
+  }
+
+  // Helper method to extract the entity reference from the request or user information
+  private extractEntityRefFromRequest(request: PolicyQuery, identityUser?: BackstageIdentityResponse): string | undefined {
+    // Implement the logic to extract the entity reference from the request or user information
+    if (!identityUser?.identity.ownershipEntityRefs || identityUser.identity.ownershipEntityRefs.length === 0) {
+      console.error('Ownership entity references are not available.');
+      return undefined;
+    }
+    return identityUser.identity.ownershipEntityRefs[0]; // Example: using the first ownership entity reference
+  }
+
+  // Helper method to format the entity reference
+  private formatEntityRef(entityRef: string): string {
+    if (!entityRef.includes(':')) {
+      return `user:${entityRef}`;
+    }
+    return entityRef;
+  }
+
+  // Helper method to extract the entity name from the entity reference
+  private extractEntityNameFromRef(entityRef: string): string {
+    return entityRef.split(':')[1];
+  }
 }
-
-/**
- * A thin wrapper around
- * {@link @backstage/plugin-permission-common#PermissionClient} that allows all
- * service-to-service requests.
- * @public
- */
-declare class ServerPermissionClient implements PermissionsService {
-    #private;
-    static fromConfig(config: Config, options: {
-        discovery: DiscoveryService;
-        /** @deprecated This option will be removed in the future, provide a the auth option instead */
-        tokenManager?: TokenManager;
-        auth?: AuthService;
-    }): ServerPermissionClient;
-    private constructor();
-    authorizeConditional(queries: QueryPermissionRequest[], options?: PermissionsServiceRequestOptions): Promise<PolicyDecision[]>;
-    authorize(requests: AuthorizePermissionRequest[], options?: PermissionsServiceRequestOptions): Promise<AuthorizePermissionResponse[]>;
-}
-
-export { type ApplyConditionsRequest, type ApplyConditionsRequestEntry, type ApplyConditionsResponse, type ApplyConditionsResponseEntry, type Condition, type ConditionTransformer, type Conditions, type CreatePermissionIntegrationRouterResourceOptions, type MetadataResponse, type MetadataResponseSerializedRule, type PermissionIntegrationRouterOptions, type PermissionPolicy, type PermissionRule, type PolicyQuery, type PolicyQueryUser, ServerPermissionClient, createConditionAuthorizer, createConditionExports, createConditionFactory, createConditionTransformer, createPermissionIntegrationRouter, createPermissionRule, isAndCriteria, isNotCriteria, isOrCriteria, makeCreatePermissionRule };
-
-
-and permission have this:
-
-import { JsonPrimitive } from '@backstage/types';
-import zodToJsonSchema from 'zod-to-json-schema';
-import { Config } from '@backstage/config';
-
-/**
- * The attributes related to a given permission; these should be generic and widely applicable to
- * all permissions in the system.
- * @public
- */
-type PermissionAttributes = {
-    action?: 'create' | 'read' | 'update' | 'delete';
-};
-/**
- * Generic type for building {@link Permission} types.
- * @public
- */
-type PermissionBase<TType extends string, TFields extends object> = {
-    /**
-     * The name of the permission.
-     */
-    name: string;
-    /**
-     * {@link PermissionAttributes} which describe characteristics of the permission, to help
-     * policy authors make consistent decisions for similar permissions without referring to them
-     * all by name.
-     */
-    attributes: PermissionAttributes;
-} & {
-    /**
-     * String value indicating the type of the permission (e.g. 'basic',
-     * 'resource'). The allowed authorization flows in the permission system
-     * depend on the type. For example, a `resourceRef` should only be provided
-     * when authorizing permissions of type 'resource'.
-     */
-    type: TType;
-} & TFields;
-/**
- * A permission that can be checked through authorization.
- *
- * @remarks
- *
- * Permissions are the "what" part of authorization, the action to be performed. This may be reading
- * an entity from the catalog, executing a software template, or any other action a plugin author
- * may wish to protect.
- *
- * To evaluate authorization, a permission is paired with a Backstage identity (the "who") and
- * evaluated using an authorization policy.
- * @public
- */
-type Permission = BasicPermission | ResourcePermission;
-/**
- * A standard {@link Permission} with no additional capabilities or restrictions.
- * @public
- */
-type BasicPermission = PermissionBase<'basic', {}>;
-/**
- * ResourcePermissions are {@link Permission}s that can be authorized based on
- * characteristics of a resource such a catalog entity.
- * @public
- */
-type ResourcePermission<TResourceType extends string = string> = PermissionBase<'resource', {
-    /**
-     * Denotes the type of the resource whose resourceRef should be passed when
-     * authorizing.
-     */
-    resourceType: TResourceType;
-}>;
-/**
- * A client interacting with the permission backend can implement this authorizer interface.
- * @public
- * @deprecated Use {@link @backstage/plugin-permission-common#PermissionEvaluator} instead
- */
-interface PermissionAuthorizer {
-    authorize(requests: EvaluatePermissionRequest[], options?: AuthorizeRequestOptions): Promise<EvaluatePermissionResponse[]>;
-}
-/**
- * Options for authorization requests.
- * @public
- */
-type AuthorizeRequestOptions = {
-    token?: string;
-};
-
-/**
- * A request with a UUID identifier, so that batched responses can be matched up with the original
- * requests.
- * @public
- */
-type IdentifiedPermissionMessage<T> = T & {
-    id: string;
-};
-/**
- * A batch of request or response items.
- * @public
- */
-type PermissionMessageBatch<T> = {
-    items: IdentifiedPermissionMessage<T>[];
-};
-/**
- * The result of an authorization request.
- * @public
- */
-declare enum AuthorizeResult {
-    /**
-     * The authorization request is denied.
-     */
-    DENY = "DENY",
-    /**
-     * The authorization request is allowed.
-     */
-    ALLOW = "ALLOW",
-    /**
-     * The authorization request is allowed if the provided conditions are met.
-     */
-    CONDITIONAL = "CONDITIONAL"
-}
-/**
- * A definitive decision returned by the {@link @backstage/plugin-permission-node#PermissionPolicy}.
- *
- * @remarks
- *
- * This indicates that the policy unconditionally allows (or denies) the request.
- *
- * @public
- */
-type DefinitivePolicyDecision = {
-    result: AuthorizeResult.ALLOW | AuthorizeResult.DENY;
-};
-/**
- * A conditional decision returned by the {@link @backstage/plugin-permission-node#PermissionPolicy}.
- *
- * @remarks
- *
- * This indicates that the policy allows authorization for the request, given that the returned
- * conditions hold when evaluated. The conditions will be evaluated by the corresponding plugin
- * which knows about the referenced permission rules.
- *
- * @public
- */
-type ConditionalPolicyDecision = {
-    result: AuthorizeResult.CONDITIONAL;
-    pluginId: string;
-    resourceType: string;
-    conditions: PermissionCriteria<PermissionCondition>;
-};
-/**
- * A decision returned by the {@link @backstage/plugin-permission-node#PermissionPolicy}.
- *
- * @public
- */
-type PolicyDecision = DefinitivePolicyDecision | ConditionalPolicyDecision;
-/**
- * A condition returned with a CONDITIONAL authorization response.
- *
- * Conditions are a reference to a rule defined by a plugin, and parameters to apply the rule. For
- * example, a rule might be `isOwner` from the catalog-backend, and params may be a list of entity
- * claims from a identity token.
- * @public
- */
-type PermissionCondition<TResourceType extends string = string, TParams extends PermissionRuleParams = PermissionRuleParams> = {
-    resourceType: TResourceType;
-    rule: string;
-    params?: TParams;
-};
-/**
- * Utility type to represent an array with 1 or more elements.
- * @ignore
- */
-type NonEmptyArray<T> = [T, ...T[]];
-/**
- * Represents a logical AND for the provided criteria.
- * @public
- */
-type AllOfCriteria<TQuery> = {
-    allOf: NonEmptyArray<PermissionCriteria<TQuery>>;
-};
-/**
- * Represents a logical OR for the provided criteria.
- * @public
- */
-type AnyOfCriteria<TQuery> = {
-    anyOf: NonEmptyArray<PermissionCriteria<TQuery>>;
-};
-/**
- * Represents a negation of the provided criteria.
- * @public
- */
-type NotCriteria<TQuery> = {
-    not: PermissionCriteria<TQuery>;
-};
-/**
- * Composes several {@link PermissionCondition}s as criteria with a nested AND/OR structure.
- * @public
- */
-type PermissionCriteria<TQuery> = AllOfCriteria<TQuery> | AnyOfCriteria<TQuery> | NotCriteria<TQuery> | TQuery;
-/**
- * A parameter to a permission rule.
- *
- * @public
- */
-type PermissionRuleParam = undefined | JsonPrimitive | JsonPrimitive[];
-/**
- * Types that can be used as parameters to permission rules.
- *
- * @public
- */
-type PermissionRuleParams = undefined | Record<string, PermissionRuleParam>;
-/**
- * An individual request sent to the permission backend.
- * @public
- */
-type EvaluatePermissionRequest = {
-    permission: Permission;
-    resourceRef?: string;
-};
-/**
- * A batch of requests sent to the permission backend.
- * @public
- */
-type EvaluatePermissionRequestBatch = PermissionMessageBatch<EvaluatePermissionRequest>;
-/**
- * An individual response from the permission backend.
- *
- * @remarks
- *
- * This response type is an alias of {@link PolicyDecision} to maintain separation between the
- * {@link @backstage/plugin-permission-node#PermissionPolicy} interface and the permission backend
- * api. They may diverge at some point in the future. The response
- *
- * @public
- */
-type EvaluatePermissionResponse = PolicyDecision;
-/**
- * A batch of responses from the permission backend.
- * @public
- */
-type EvaluatePermissionResponseBatch = PermissionMessageBatch<EvaluatePermissionResponse>;
-/**
- * Request object for {@link PermissionEvaluator.authorize}. If a {@link ResourcePermission}
- * is provided, it must include a corresponding `resourceRef`.
- * @public
- */
-type AuthorizePermissionRequest = {
-    permission: Exclude<Permission, ResourcePermission>;
-    resourceRef?: never;
-} | {
-    permission: ResourcePermission;
-    resourceRef: string;
-};
-/**
- * Response object for {@link PermissionEvaluator.authorize}.
- * @public
- */
-type AuthorizePermissionResponse = DefinitivePolicyDecision;
-/**
- * Request object for {@link PermissionEvaluator.authorizeConditional}.
- * @public
- */
-type QueryPermissionRequest = {
-    permission: ResourcePermission;
-    resourceRef?: never;
-};
-/**
- * Response object for {@link PermissionEvaluator.authorizeConditional}.
- * @public
- */
-type QueryPermissionResponse = PolicyDecision;
-/**
- * A client interacting with the permission backend can implement this evaluator interface.
- *
- * @public
- */
-interface PermissionEvaluator {
-    /**
-     * Evaluates {@link Permission | Permissions} and returns a definitive decision.
-     */
-    authorize(requests: AuthorizePermissionRequest[], options?: EvaluatorRequestOptions & {
-        _ignored?: never;
-    }): Promise<AuthorizePermissionResponse[]>;
-    /**
-     * Evaluates {@link ResourcePermission | ResourcePermissions} and returns both definitive and
-     * conditional decisions, depending on the configured
-     * {@link @backstage/plugin-permission-node#PermissionPolicy}. This method is useful when the
-     * caller needs more control over the processing of conditional decisions. For example, a plugin
-     * backend may want to use {@link PermissionCriteria | conditions} in a database query instead of
-     * evaluating each resource in memory.
-     */
-    authorizeConditional(requests: QueryPermissionRequest[], options?: EvaluatorRequestOptions & {
-        _ignored?: never;
-    }): Promise<QueryPermissionResponse[]>;
-}
-/**
- * Options for {@link PermissionEvaluator} requests.
- *
- * This is currently empty, as there are no longer any common options for the permission evaluator.
- *
- * @public
- */
-interface EvaluatorRequestOptions {
-}
-
-/**
- * This is a copy of the core DiscoveryApi, to avoid importing core.
- *
- * @public
- */
-type DiscoveryApi = {
-    getBaseUrl(pluginId: string): Promise<string>;
-};
-
-/**
- * Serialized permission rules, with the paramsSchema
- * converted from a ZodSchema to a JsonSchema.
- *
- * @public
- */
-type MetadataResponseSerializedRule = {
-    name: string;
-    description: string;
-    resourceType: string;
-    paramsSchema?: ReturnType<typeof zodToJsonSchema>;
-};
-/**
- * Response type for the .metadata endpoint in
- * {@link @backstage/plugin-permission-node#createPermissionIntegrationRouter}
- *
- * @public
- */
-type MetadataResponse = {
-    permissions?: Permission[];
-    rules: MetadataResponseSerializedRule[];
-};
-
-/**
- * Check if the two parameters are equivalent permissions.
- * @public
- */
-declare function isPermission<T extends Permission>(permission: Permission, comparedPermission: T): permission is T;
-/**
- * Check if a given permission is a {@link ResourcePermission}. When
- * `resourceType` is supplied as the second parameter, also checks if
- * the permission has the specified resource type.
- * @public
- */
-declare function isResourcePermission<T extends string = string>(permission: Permission, resourceType?: T): permission is ResourcePermission<T>;
-/**
- * Check if a given permission is related to a create action.
- * @public
- */
-declare function isCreatePermission(permission: Permission): boolean;
-/**
- * Check if a given permission is related to a read action.
- * @public
- */
-declare function isReadPermission(permission: Permission): boolean;
-/**
- * Check if a given permission is related to an update action.
- * @public
- */
-declare function isUpdatePermission(permission: Permission): boolean;
-/**
- * Check if a given permission is related to a delete action.
- * @public
- */
-declare function isDeletePermission(permission: Permission): boolean;
-/**
- * Convert {@link PermissionAuthorizer} to {@link PermissionEvaluator}.
- *
- * @public
- */
-declare function toPermissionEvaluator(permissionAuthorizer: PermissionAuthorizer): PermissionEvaluator;
-
-/**
- * Utility function for creating a valid {@link ResourcePermission}, inferring
- * the appropriate type and resource type parameter.
- *
- * @public
- */
-declare function createPermission<TResourceType extends string>(input: {
-    name: string;
-    attributes: PermissionAttributes;
-    resourceType: TResourceType;
-}): ResourcePermission<TResourceType>;
-/**
- * Utility function for creating a valid {@link BasicPermission}.
- *
- * @public
- */
-declare function createPermission(input: {
-    name: string;
-    attributes: PermissionAttributes;
-}): BasicPermission;
-
-/**
- * Options for {@link PermissionClient} requests.
- *
- * @public
- */
-type PermissionClientRequestOptions = {
-    token?: string;
-};
-/**
- * An isomorphic client for requesting authorization for Backstage permissions.
- * @public
- */
-declare class PermissionClient implements PermissionEvaluator {
-    private readonly enabled;
-    private readonly discovery;
-    constructor(options: {
-        discovery: DiscoveryApi;
-        config: Config;
-    });
-    /**
-     * {@inheritdoc PermissionEvaluator.authorize}
-     */
-    authorize(requests: AuthorizePermissionRequest[], options?: PermissionClientRequestOptions): Promise<AuthorizePermissionResponse[]>;
-    /**
-     * {@inheritdoc PermissionEvaluator.authorizeConditional}
-     */
-    authorizeConditional(queries: QueryPermissionRequest[], options?: PermissionClientRequestOptions): Promise<QueryPermissionResponse[]>;
-    private makeRequest;
-    private getAuthorizationHeader;
-}
-
-export { type AllOfCriteria, type AnyOfCriteria, type AuthorizePermissionRequest, type AuthorizePermissionResponse, type AuthorizeRequestOptions, AuthorizeResult, type BasicPermission, type ConditionalPolicyDecision, type DefinitivePolicyDecision, type DiscoveryApi, type EvaluatePermissionRequest, type EvaluatePermissionRequestBatch, type EvaluatePermissionResponse, type EvaluatePermissionResponseBatch, type EvaluatorRequestOptions, type IdentifiedPermissionMessage, type MetadataResponse, type MetadataResponseSerializedRule, type NotCriteria, type Permission, type PermissionAttributes, type PermissionAuthorizer, type PermissionBase, PermissionClient, type PermissionClientRequestOptions, type PermissionCondition, type PermissionCriteria, type PermissionEvaluator, type PermissionMessageBatch, type PermissionRuleParam, type PermissionRuleParams, type PolicyDecision, type QueryPermissionRequest, type QueryPermissionResponse, type ResourcePermission, createPermission, isCreatePermission, isDeletePermission, isPermission, isReadPermission, isResourcePermission, isUpdatePermission, toPermissionEvaluator };
