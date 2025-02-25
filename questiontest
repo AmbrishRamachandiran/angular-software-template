@@ -1,65 +1,18 @@
-How to Contribute to Backstage
-Title: How to Contribute to Backstage
+Subject: Implementing Backstage Permissions for Software Templates
 
-Content:
+Hi [Recipient’s Name/Team],
 
-Getting Started with Contribution
-Forking the Repository:
+The IT team has connected with us to discuss the implementation of Backstage permissions for software templates. The goal is to restrict access so that only authorized users can view specific templates, with access control managed by groups and their corresponding permissions.
 
-Navigate to the Backstage GitHub repository.
-Click the "Fork" button to create a personal copy of the repository.
-Clone the forked repository to your local machine using git clone.
-Setting Up the Development Environment:
+However, as Backstage does not currently provide the list of template names or entity names created using software templates within the policy file, we recommend the following approaches:
+	1.	Writing Custom Policies: This approach would allow more flexibility in defining permissions tailored to your needs.
+	2.	Using External Plugins: Specifically, the OPA (Open Policy Agent) Permissions Wrapper could be utilized to manage permissions and policies more effectively.
 
-Ensure you have Node.js and Yarn installed on your machine.
-Install dependencies by running yarn install in the cloned repository.
-Run the development server using yarn dev to start Backstage locally.
-Understanding the Codebase
-Key Directories and Files:
+We are available to provide insights and support during the discussions to help with the implementation.
 
-packages/: Contains core packages and plugins.
-plugins/: Houses the various plugins for Backstage.
-app/: The main Backstage application.
-docs/: Documentation for contributing, setting up, and using Backstage.
-Navigating the Codebase:
+Looking forward to your feedback.
 
-Familiarize yourself with the structure and organization of the code.
-Explore example plugins and core components to understand how they are built and integrated.
-Finding Issues to Work On
-Using GitHub Issues and Labels:
-
-Check the Issues section in the Backstage repository.
-Look for issues labeled as good first issue or help wanted to find beginner-friendly tasks.
-Prioritizing Issues and Selecting Tasks:
-
-Choose issues that match your skill level and interest.
-Comment on the issue to indicate that you are working on it and ask for any necessary clarifications.
-Submitting Contributions
-Writing Clean and Understandable Code:
-
-Follow the coding standards and guidelines provided in the repository.
-Ensure your code is well-documented and easy to understand.
-Creating Pull Requests:
-
-Create a new branch for your changes using git checkout -b branch-name.
-Commit your changes with descriptive messages.
-Push the branch to your forked repository and create a pull request (PR) to the main repository.
-Code Review Process and Addressing Feedback:
-
-Review the contribution guidelines and PR template.
-Be responsive to feedback from maintainers and make necessary changes.
-Ensure your PR passes all checks and tests before merging.
-Best Practices for Contribution
-Following Coding Standards and Guidelines:
-
-Adhere to the project's style guide and best practices.
-Write tests to cover new features and bug fixes.
-Writing Tests and Documentation:
-
-Ensure your code changes include appropriate tests.
-Update or create documentation to reflect your changes and help other contributors.
-Communicating with Maintainers and the Community:
-
-Join the Backstage community on Discord or other forums.
-Engage in discussions, ask questions, and provide feedback to other contributors.
-By following these steps, you can effectively contribute to the Backstage project and become an active member of the open-source community.
+Best regards,
+[Your Name]
+[Your Position]
+[Your Company]
