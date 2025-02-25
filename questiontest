@@ -1,18 +1,18 @@
-Subject: Implementing Backstage Permissions for Software Templates
+Here’s an updated version that mentions the hike:
 
-Hi [Recipient’s Name/Team],
+Subject: Thank You for the Hike and Support
 
-The IT team has connected with us to discuss the implementation of Backstage permissions for software templates. The goal is to restrict access so that only authorized users can view specific templates, with access control managed by groups and their corresponding permissions.
+Hi Jatinder, Ashish, and Mohit,
 
-However, as Backstage does not currently provide the list of template names or entity names created using software templates within the policy file, we recommend the following approaches:
-	1.	Writing Custom Policies: This approach would allow more flexibility in defining permissions tailored to your needs.
-	2.	Using External Plugins: Specifically, the OPA (Open Policy Agent) Permissions Wrapper could be utilized to manage permissions and policies more effectively.
+I hope you’re doing well. I wanted to take a moment to sincerely thank you all.
 
-We are available to provide insights and support during the discussions to help with the implementation.
+Jatinder, I really appreciate your guidance and support. Your help and leadership played a big role in my growth, and I’m truly grateful for it. Thank you for considering me for the hike – it means a lot to me.
 
-Looking forward to your feedback.
+Ashish and Mohit, thank you both for your constant support and encouragement. Working with you has been a great experience, and your help has always made things easier for me.
+
+I’m truly thankful to have such supportive teammates. Thanks once again for everything!
 
 Best regards,
-[Your Name]
-[Your Position]
-[Your Company]
+Ambrish
+
+Feel free to tweak it as needed!
