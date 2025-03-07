@@ -1,115 +1,7 @@
-Hi we are creating a backstage plugin that will be display the current weather from the weatherstack api 
-
-the api we hit is -> http://api.weatherstack.com/current?access_key=bcb62d28ce8b7dd029c920d05fb580ac&query=ooty
-the response we get it ->
-
-{
-    "request": {
-        "type": "City",
-        "query": "Ooty, India",
-        "language": "en",
-        "unit": "m"
-    },
-    "location": {
-        "name": "Ooty",
-        "country": "India",
-        "region": "Tamil Nadu",
-        "lat": "11.400",
-        "lon": "76.700",
-        "timezone_id": "Asia/Kolkata",
-        "localtime": "2025-03-06 15:11",
-        "localtime_epoch": 1741273860,
-        "utc_offset": "5.50"
-    },
-    "current": {
-        "observation_time": "09:41 AM",
-        "temperature": 37,
-        "weather_code": 116,
-        "weather_icons": [
-            "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png"
-        ],
-        "weather_descriptions": [
-            "Partly cloudy"
-        ],
-        "wind_speed": 7,
-        "wind_degree": 39,
-        "wind_dir": "NE",
-        "pressure": 1011,
-        "precip": 0,
-        "humidity": 22,
-        "cloudcover": 25,
-        "feelslike": 37,
-        "uv_index": 5,
-        "visibility": 7,
-        "is_day": "yes"
-    }
-}
-
-
-
-the api working from the api tester but we are getting 404 from the backstage plugin proxy implementation 
-
-see below the backstage code files :
-
-plugin.ts
-
-import {
-  configApiRef,
-  createApiFactory,
-  createPlugin,
-  createRoutableExtension,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
-import { rootRouteRef } from './routes';
-import { WeatherClient, weatherApiRef } from './api/WeatherApi';
-
-/**
- * The Backstage plugin that holds weather specific components
- *
- * @public
- */
-export const weatherPlugin = createPlugin({
-  id: 'weather',
-  apis: [
-    createApiFactory({
-      api: weatherApiRef,
-      deps: {
-        configApi: configApiRef,
-        discoveryApi: discoveryApiRef,
-        fetchApi: fetchApiRef,
-      },
-      factory: ({ configApi, discoveryApi, fetchApi }) =>
-        WeatherClient.fromConfig(configApi, {
-          discoveryApi,
-          fetchApi,
-        }),
-    }),
-  ],
-  routes: {
-    root: rootRouteRef,
-  },
-});
-
-/**
- * A component to display a weather home page
- *
- * @public
- */
-export const WeatherPage = weatherPlugin.provide(
-  createRoutableExtension({
-    name: 'WeatherPage',
-    component: () =>
-      import('./components/WeatherCardComponent/WeatherCardComponent').then(m => m.WeatherCardComponent),
-    mountPoint: rootRouteRef,
-  }),
-);
-
-
-app-config.yaml:
+app-config-yaml:
 
 app:
-  title: Backstage Example App
+  title: Scaffolded Backstage App
   baseUrl: http://localhost:3000
 
 organization:
@@ -125,13 +17,16 @@ backend:
     credentials: true
 
   proxy:
-    '/weather':
-      target: 'http://api.weatherstack.com'
-      changeOrigin: true
-      pathRewrite:
-        '^/weather': '' # This line ensures that /weather is stripped from the path
-      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE']
-      allowedHeaders: ['Authorization']
+    endpoints:
+      '/weather':
+        target: 'http://api.weatherstack.com'
+        changeOrigin: true
+        allowedMethods: ['GET']
+        pathRewrite:
+          '^/weather': ''
+        headers:
+          # The Authorization header is not necessary as the API key is passed in the query string
+          access_key: 'bcb62d28ce8b7dd029c920d05fb580ac'
 
 integrations:
   github:
@@ -167,13 +62,176 @@ catalog:
 permission:
   enabled: true
 
-# Configuration for the Weather plugin
+# Config for the Weather plugin
 weather:
   apiKey: 'bcb62d28ce8b7dd029c920d05fb580ac'
   defaultLocation: 'Ooty'
+  proxyPath: '/weather'
 
 
-weatherapi.ts
+plugin.ts
+
+import {
+  createPlugin,
+  createRoutableExtension,
+  createApiFactory,
+  configApiRef,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
+import { rootRouteRef } from './routes';
+import {
+  WeatherClient,
+  weatherApiRef,
+} from './api/WeatherApi';
+
+export const weatherPlugin = createPlugin({
+  id: 'weather',
+  apis: [
+    createApiFactory({
+      api: weatherApiRef,
+      deps: {
+        configApi: configApiRef,
+        discoveryApi: discoveryApiRef,
+        fetchApi: fetchApiRef,
+      },
+      factory: ({ configApi, discoveryApi, fetchApi }) =>
+        WeatherClient.fromConfig(configApi, {
+          discoveryApi,
+          fetchApi,
+        }),
+    }),
+  ],
+  routes: {
+    root: rootRouteRef,
+  },
+});
+
+export const WeatherPage = weatherPlugin.provide(
+  createRoutableExtension({
+    name: 'WeatherPage',
+    component: () =>
+      import('./components/WeatherCardComponent/WeatherCardComponent').then(m => m.WeatherCardComponent),
+    mountPoint: rootRouteRef,
+  }),
+);
+
+
+config.d.ts
+
+
+/**
+ * This file defines the configuration schema for the Weather plugin.
+ */
+export interface Config {
+    weather?: {
+      /**
+       * The API key for accessing the WeatherStack API.
+       * @visibility frontend
+       */
+      apiKey: string;
+      /**
+       * The default location for fetching weather data.
+       * @visibility frontend
+       */
+      defaultLocation: string;
+      /**
+       * List of available locations for weather data.
+       * @visibility frontend
+       */
+      locations?: string[];
+      /**
+       * Path to use for requests via the proxy, defaults to /weather
+       * @visibility frontend
+       */
+      proxyPath?: string;
+    };
+  }
+
+
+types.ts
+
+export interface WeatherResponse {
+  current: {
+    temperature: number;
+    weather_descriptions: string[];
+    weather_icons: string[];
+    wind_speed: number;
+    humidity: number;
+    feelslike: number;
+    visibility: number;
+    is_day: string;
+  };
+  location: {
+    localtime: string;
+  };
+}
+
+WeatherClient.ts
+
+import { ConfigApi, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { ResponseError } from '@backstage/errors';
+import { WeatherApi } from './WeatherApi';
+import { WeatherResponse } from './types';
+
+const DEFAULT_PROXY_PATH = '/weather';
+
+export class WeatherClient implements WeatherApi {
+  private readonly discoveryApi: DiscoveryApi;
+  private readonly fetchApi: FetchApi;
+  private readonly apiKey: string;
+  private readonly proxyPath: string;
+
+  static fromConfig(configApi: ConfigApi, dependencies: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
+    const weatherConfig = configApi.getConfig('weather');
+    const apiKey: string = weatherConfig.getString('apiKey');
+
+    return new WeatherClient({
+      discoveryApi: dependencies.discoveryApi,
+      fetchApi: dependencies.fetchApi,
+      apiKey,
+      proxyPath: weatherConfig.getOptionalString('proxyPath') ?? DEFAULT_PROXY_PATH,
+    });
+  }
+
+  constructor(opts: { discoveryApi: DiscoveryApi; fetchApi: FetchApi; apiKey: string; proxyPath: string }) {
+    this.discoveryApi = opts.discoveryApi;
+    this.fetchApi = opts.fetchApi;
+    this.apiKey = opts.apiKey;
+    this.proxyPath = opts.proxyPath;
+  }
+
+  private async getServiceUrl(): Promise<string> {
+    const proxyUrl = await this.discoveryApi.getBaseUrl('proxy');
+    console.log(proxyUrl, "proxyurl");
+    return `${proxyUrl}${this.proxyPath}`;
+  }
+
+  private async fetch<T = any>(input: string, init?: RequestInit): Promise<T> {
+    const serviceUrl = await this.getServiceUrl();
+    const apiUrl = `${serviceUrl}${input}`;
+    console.log(`Fetching from URL: ${apiUrl}`); // Add logging
+    const response = await this.fetchApi.fetch(apiUrl, init);
+    if (!response.ok) {
+      throw await ResponseError.fromResponse(response);
+    }
+
+    return await response.json();
+  }
+
+  public async getWeather(location: string): Promise<WeatherResponse> {
+    const url = `/current?access_key=${this.apiKey}&query=${location}`;
+
+    const response = await this.fetch<WeatherResponse>(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    return response;
+  }
+}
+
+WeatherApi.ts
 
 import { createApiRef, ConfigApi, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { WeatherResponse } from './types';
@@ -200,127 +258,102 @@ export const weatherApiFactory = {
     fetchApi: createApiRef<FetchApi>({ id: 'core.fetch' }),
   },
   factory: ({ configApi, discoveryApi, fetchApi }: { configApi: ConfigApi; discoveryApi: DiscoveryApi; fetchApi: FetchApi }) => {
-    return WeatherClient.fromConfig(configApi, {
+    const weatherConfig = configApi.getConfig('weather');
+    const apiKey = weatherConfig.getString('apiKey');
+
+    return new WeatherClient({
       discoveryApi,
       fetchApi,
+      apiKey,
+      proxyPath: weatherConfig.getOptionalString('weather.proxyPath') ?? '/weather',
     });
   },
 };
 
+WeatherCardComponent.tsx
 
-weatherclient.ts
-
-import { ConfigApi, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
-import { ResponseError } from '@backstage/errors';
-import { WeatherApi } from './WeatherApi';
-import { WeatherResponse } from './types';
-
-export class WeatherClient implements WeatherApi {
-  private readonly discoveryApi: DiscoveryApi;
-  private readonly fetchApi: FetchApi;
-  private readonly apiKey: string;
-
-  private constructor({
-    discoveryApi,
-    fetchApi,
-    apiKey,
-  }: {
-    discoveryApi: DiscoveryApi;
-    fetchApi: FetchApi;
-    apiKey: string;
-  }) {
-    this.discoveryApi = discoveryApi;
-    this.fetchApi = fetchApi;
-    this.apiKey = apiKey;
-  }
-
-  static fromConfig(
-    config: ConfigApi,
-    dependencies: {
-      discoveryApi: DiscoveryApi;
-      fetchApi: FetchApi;
-    },
-  ): WeatherClient {
-    return new WeatherClient({
-      discoveryApi: dependencies.discoveryApi,
-      fetchApi: dependencies.fetchApi,
-      apiKey: config.getString('weather.apiKey'),
-    });
-  }
-
-  private async get<T = any>(input: string): Promise<T> {
-    const proxyUrl = await this.discoveryApi.getBaseUrl('proxy');
-    const apiUrl = `${proxyUrl}/weather${input}`;
-    const response = await this.fetchApi.fetch(apiUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) throw await ResponseError.fromResponse(response);
-    return (await response.json()) as T;
-  }
-
-  public async getWeather(location: string): Promise<WeatherResponse> {
-    const url = `/current?access_key=${this.apiKey}&query=${location}`;
-
-    return this.get<WeatherResponse>(url);
-  }
-}
-
-
-config.d.ts
-
-/**
- * This file defines the configuration schema for the Weather plugin.
- */
-export interface Config {
-  weather?: {
-    /**
-     * The API key for accessing the WeatherStack API.
-     * @visibility frontend
-     */
-    apiKey: string;
-    /**
-     * The default location for fetching weather data.
-     * @visibility frontend
-     */
-    defaultLocation: string;
-  };
-}
-
-
-weathercardcomponent.tsx
 
 import React, { useState, useEffect } from 'react';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { weatherApiRef } from '../../api/WeatherApi';
 import { Card, CardContent, Typography, CircularProgress } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import { WeatherResponse } from '../../api/types';
+
+const useStyles = makeStyles((theme) => ({
+  card: {
+    width: '100%',
+    maxWidth: 400,
+    margin: theme.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[3],
+  },
+  cardContent: {
+    paddingTop: theme.spacing(1),
+  },
+  weatherDetail: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weatherImage: {
+    width: 50,
+    height: 50,
+  },
+}));
 
 export const WeatherCardComponent = () => {
+  const classes = useStyles();
   const config = useApi(configApiRef);
   const weatherApi = useApi(weatherApiRef);
   const defaultLocation = config.getOptionalString('weather.defaultLocation') || 'Ooty';
-  const [weather, setWeather] = useState<any>(null);
+  const [weather, setWeather] = useState<WeatherResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    weatherApi.getWeather(defaultLocation).then(setWeather).catch(error => {
-      console.error('Error fetching weather data:', error);
-    });
+    const fetchWeather = async () => {
+      try {
+        setLoading(true);
+        const weatherData = await weatherApi.getWeather(defaultLocation);
+        setWeather(weatherData);
+        setError(null);
+      } catch (err) {
+        setError('Failed to fetch weather data');
+        setWeather(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWeather();
   }, [defaultLocation, weatherApi]);
 
-  if (!weather) {
+  if (loading) {
     return <CircularProgress />;
   }
 
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
+  if (weather === null) {
+    return <Typography>No weather data available</Typography>;
+  }
+
   return (
-    <Card>
-      <CardContent>
+    <Card className={classes.card}>
+      <CardContent className={classes.cardContent}>
         <Typography variant="h5">Weather in {defaultLocation}</Typography>
-        <Typography>Temperature: {weather.current.temperature}°C</Typography>
-        <Typography>Weather: {weather.current.weather_descriptions.join(', ')}</Typography>
-        <img src={weather.current.weather_icons[0]} alt="Weather Icon" />
-        <Typography>Wind Speed: {weather.current.wind_speed} km/h</Typography>
+        <div className={classes.weatherDetail}>
+          <Typography variant="h6">{weather.current.temperature}°C</Typography>
+          <img src={weather.current.weather_icons[0]} alt="Weather Icon" className={classes.weatherImage} />
+        </div>
+        <Typography>{weather.current.weather_descriptions.join(', ')}</Typography>
+        <Typography>Wind: {weather.current.wind_speed} km/h</Typography>
         <Typography>Humidity: {weather.current.humidity}%</Typography>
         <Typography>Feels Like: {weather.current.feelslike}°C</Typography>
         <Typography>Visibility: {weather.current.visibility} km</Typography>
@@ -330,17 +363,3 @@ export const WeatherCardComponent = () => {
     </Card>
   );
 };
-
-
-in ui we are getting 
-
-WeatherClient.ts:42 
- GET http://localhost:7007/api/proxy/weather/current?access_key=bcb62d2…&query=Ooty 404 (Not Found)
-
-WeatherCardComponent.tsx:14 Error fetching weather data: ResponseError: Request failed with 404 Not Found
-    at async WeatherClient.get (WeatherClient.ts:48:1)
-Caused by: Error: Request failed with status 404 Not Found
-
-
-
-please fix it by checking backstage docs of proxying and send me the necessary changes
