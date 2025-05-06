@@ -1,34 +1,60 @@
+
 proxy:
-  '/weather':
-    target: 'http://api.weatherstack.com'
-    changeOrigin: true
-    pathRewrite:
-      '^/weather': '/current?access_key=${WEATHERSTACK_API_KEY}'
+  endpoints:
+    '/weather':
+      target: 'http://api.weatherstack.com'
+      queryParams:
+        access_key: ${WEATHERSTACK_API_KEY}
 
 
-// REMOVE: private readonly apiKey: string; (from class properties)
 
-static fromConfig(configApi: ConfigApi, dependencies: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
-  return new WeatherClient({
-    discoveryApi: dependencies.discoveryApi,
-    fetchApi: dependencies.fetchApi,
-    proxyPath: configApi.getOptionalString('weather.proxyPath') ?? DEFAULT_PROXY_PATH,
-  });
-}
+import { ConfigApi, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { ResponseError } from '@backstage/errors';
+import { WeatherApi } from './WeatherApi';
+import { WeatherResponse } from './types';
 
-constructor(opts: { discoveryApi: DiscoveryApi; fetchApi: FetchApi; proxyPath: string }) {
-  this.discoveryApi = opts.discoveryApi;
-  this.fetchApi = opts.fetchApi;
-  this.proxyPath = opts.proxyPath;
-}
+const DEFAULT_PROXY_PATH = '/weather';
 
-// In getWeather, REMOVE the access_key part:
-public async getWeather(location: string): Promise<WeatherResponse> {
-  const url = `&query=${encodeURIComponent(location)}`; // prepend with & to match the existing `?access_key=...`
-  const response = await this.fetch<WeatherResponse>(url, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  });
+export class WeatherClient implements WeatherApi {
+  private readonly discoveryApi: DiscoveryApi;
+  private readonly fetchApi: FetchApi;
+  private readonly proxyPath: string;
 
-  return response;
+  static fromConfig(configApi: ConfigApi, dependencies: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
+    const weatherConfig = configApi.getConfig('weather');
+    return new WeatherClient({
+      discoveryApi: dependencies.discoveryApi,
+      fetchApi: dependencies.fetchApi,
+      proxyPath: weatherConfig.getOptionalString('proxyPath') ?? DEFAULT_PROXY_PATH,
+    });
+  }
+
+  constructor(opts: { discoveryApi: DiscoveryApi; fetchApi: FetchApi; proxyPath: string }) {
+    this.discoveryApi = opts.discoveryApi;
+    this.fetchApi = opts.fetchApi;
+    this.proxyPath = opts.proxyPath;
+  }
+
+  private async getServiceUrl(): Promise<string> {
+    const proxyUrl = await this.discoveryApi.getBaseUrl('proxy');
+    return `${proxyUrl}${this.proxyPath}`;
+  }
+
+  private async fetch<T = any>(input: string, init?: RequestInit): Promise<T> {
+    const serviceUrl = await this.getServiceUrl();
+    const apiUrl = `${serviceUrl}${input}`;
+    const response = await this.fetchApi.fetch(apiUrl, init);
+    if (!response.ok) {
+      throw await ResponseError.fromResponse(response);
+    }
+    return await response.json();
+  }
+
+  public async getWeather(location: string): Promise<WeatherResponse> {
+    const url = `/current?query=${location}`;
+    return await this.fetch<WeatherResponse>(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
