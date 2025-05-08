@@ -1,18 +1,398 @@
-Here’s an updated version that mentions the hike:
+we have developed a plugin called daily weather plugin in backstage but there is some issue need to fix 
 
-Subject: Thank You for the Hike and Support
+the fix need to be done is 
 
-Hi Jatinder, Ashish, and Mohit,
+@awanlin awanlin last week
+There's still the outstanding concern that the API Key is still being handled in the frontend: https://github.com/Infosys/daily-weather-plugin/blob/c10e622958201e54699f22966c0611c20966168e/plugins/weather/config.d.ts#L8
 
-I hope you’re doing well. I wanted to take a moment to sincerely thank you all.
+Contributor
+Author
+@AmbrishRamachandiran AmbrishRamachandiran last week
+Can you please share any reference to handle this api key in the backend thanks in advance @awanlin
 
-Jatinder, I really appreciate your guidance and support. Your help and leadership played a big role in my growth, and I’m truly grateful for it. Thank you for considering me for the hike – it means a lot to me.
+Collaborator
+@awanlin awanlin last week
+As you are using the proxy you could skip that part in the config and just tell your users to provide in in their proxy config as needed, here's an example: https://backstage.io/docs/plugins/proxying/#configuration
 
-Ashish and Mohit, thank you both for your constant support and encouragement. Working with you has been a great experience, and your help has always made things easier for me.
 
-I’m truly thankful to have such supportive teammates. Thanks once again for everything!
 
-Best regards,
-Ambrish
+here are my files :
 
-Feel free to tweak it as needed!
+app-config.yaml 
+
+app:
+  title: Scaffolded Backstage App
+  baseUrl: http://localhost:3000
+
+organization:
+  name: My Company
+
+backend:
+  # Used for enabling authentication, secret is shared by all backend plugins
+  # See https://backstage.io/docs/auth/service-to-service-auth for
+  # information on the format
+  # auth:
+  #   keys:
+  #     - secret: ${BACKEND_SECRET}
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+    # Uncomment the following host directive to bind to specific interfaces
+    # host: 127.0.0.1
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+    # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
+    # Default Helmet Content-Security-Policy values can be removed by setting the key to false
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+  # This is for local development only, it is not recommended to use this in production
+  # The production database configuration is stored in app-config.production.yaml
+  database:
+    client: better-sqlite3
+    connection: ':memory:'
+  # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
+
+integrations:
+  github:
+    - host: github.com
+      # This is a Personal Access Token or PAT from GitHub. You can find out how to generate this token, and more information
+      # about setting up the GitHub integration here: https://backstage.io/docs/integrations/github/locations#configuration
+      token: ${GITHUB_TOKEN}
+    ### Example for how to add your GitHub Enterprise instance using the API:
+    # - host: ghe.example.net
+    #   apiBaseUrl: https://ghe.example.net/api/v3
+    #   token: ${GHE_TOKEN}
+
+proxy:
+   endpoints:
+   '/weather':
+        target: 'http://api.weatherstack.com'
+  ### Example for how to add a proxy endpoint for the frontend.
+  ### A typical reason to do this is to handle HTTPS and CORS for internal services.
+  # endpoints:
+  #   '/test':
+  #     target: 'https://example.com'
+  #     changeOrigin: true
+
+# Reference documentation http://backstage.io/docs/features/techdocs/configuration
+# Note: After experimenting with basic setup, use CI/CD to generate docs
+# and an external cloud storage when deploying TechDocs for production use-case.
+# https://backstage.io/docs/features/techdocs/how-to-guides#how-to-migrate-from-techdocs-basic-to-recommended-deployment-approach
+techdocs:
+  builder: 'local' # Alternatives - 'external'
+  generator:
+    runIn: 'docker' # Alternatives - 'local'
+  publisher:
+    type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
+
+auth:
+  # see https://backstage.io/docs/auth/ to learn about auth providers
+  providers:
+    # See https://backstage.io/docs/auth/guest/provider
+    guest: {}
+
+scaffolder:
+  # see https://backstage.io/docs/features/software-templates/configuration for software template options
+
+catalog:
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow: [Component, System, API, Resource, Location]
+  locations:
+    # Local example data, file locations are relative to the backend process, typically `packages/backend`
+    - type: file
+      target: ../../examples/entities.yaml
+
+    # Local example template
+    - type: file
+      target: ../../examples/template/template.yaml
+      rules:
+        - allow: [Template]
+
+    # Local example organizational data
+    - type: file
+      target: ../../examples/org.yaml
+      rules:
+        - allow: [User, Group]
+
+    ## Uncomment these lines to add more example data
+    # - type: url
+    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
+
+    ## Uncomment these lines to add an example org
+    # - type: url
+    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/acme-corp.yaml
+    #   rules:
+    #     - allow: [User, Group]
+  # Experimental: Always use the search method in UrlReaderProcessor.
+  # New adopters are encouraged to enable it as this behavior will be the default in a future release.
+  useUrlReadersSearch: true
+
+kubernetes:
+  # see https://backstage.io/docs/features/kubernetes/configuration for kubernetes configuration options
+
+# see https://backstage.io/docs/permissions/getting-started for more on the permission framework
+permission:
+  # setting this to `false` will disable permissions
+  enabled: true
+  
+# Config for the Weather plugin
+weather:
+  apiKey: 'your_api_key'
+  defaultLocation: 'stockholm'
+  proxyPath: '/weather'
+
+
+config.d.ts
+
+/**
+ * This file defines the configuration schema for the Weather plugin.
+ */
+export interface Config {
+  weather?: {
+    /**
+     * The API key for accessing the WeatherStack API.
+     * @visibility frontend
+     */
+    apiKey: string;
+    /**
+     * The default location for fetching weather data.
+     * @visibility frontend
+     */
+    defaultLocation: string;
+    /**
+     * Path to use for requests via the proxy, defaults to /weather
+     * @visibility frontend
+     */
+    proxyPath?: string;
+  };
+}
+
+
+WeatherApi.ts
+
+import { createApiRef, ConfigApi, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { WeatherResponse } from './types';
+import { WeatherClient } from './WeatherClient';
+
+// Define the API reference
+export const weatherApiRef = createApiRef<WeatherApi>({
+  id: 'plugin.weather.service',
+});
+
+// Define the API interface
+export interface WeatherApi {
+  getWeather(location: string): Promise<WeatherResponse>;
+}
+
+// Export the WeatherClient
+export { WeatherClient };
+
+// Create the API factory
+export const weatherApiFactory = {
+  deps: {
+    configApi: createApiRef<ConfigApi>({ id: 'core.config' }),
+    discoveryApi: createApiRef<DiscoveryApi>({ id: 'core.discovery' }),
+    fetchApi: createApiRef<FetchApi>({ id: 'core.fetch' }),
+  },
+  factory: ({ configApi, discoveryApi, fetchApi }: { configApi: ConfigApi; discoveryApi: DiscoveryApi; fetchApi: FetchApi }) => {
+    const weatherConfig = configApi.getConfig('weather');
+    const apiKey = weatherConfig.getString('apiKey');
+
+    return new WeatherClient({
+      discoveryApi,
+      fetchApi,
+      apiKey,
+      proxyPath: weatherConfig.getOptionalString('weather.proxyPath') ?? '/weather',
+    });
+  },
+};
+
+
+WeatherClient.ts
+
+import { ConfigApi, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { ResponseError } from '@backstage/errors';
+import { WeatherApi } from './WeatherApi';
+import { WeatherResponse } from './types';
+
+const DEFAULT_PROXY_PATH = '/weather';
+
+export class WeatherClient implements WeatherApi {
+  private readonly discoveryApi: DiscoveryApi;
+  private readonly fetchApi: FetchApi;
+  private readonly apiKey: string;
+  private readonly proxyPath: string;
+
+  static fromConfig(configApi: ConfigApi, dependencies: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
+    const weatherConfig = configApi.getConfig('weather');
+    const apiKey: string = weatherConfig.getString('apiKey');
+
+    return new WeatherClient({
+      discoveryApi: dependencies.discoveryApi,
+      fetchApi: dependencies.fetchApi,
+      apiKey,
+      proxyPath: weatherConfig.getOptionalString('proxyPath') ?? DEFAULT_PROXY_PATH,
+    });
+  }
+
+  constructor(opts: { discoveryApi: DiscoveryApi; fetchApi: FetchApi; apiKey: string; proxyPath: string }) {
+    this.discoveryApi = opts.discoveryApi;
+    this.fetchApi = opts.fetchApi;
+    this.apiKey = opts.apiKey;
+    this.proxyPath = opts.proxyPath;
+  }
+
+  private async getServiceUrl(): Promise<string> {
+    const proxyUrl = await this.discoveryApi.getBaseUrl('proxy');
+    return `${proxyUrl}${this.proxyPath}`;
+  }
+
+  private async fetch<T = any>(input: string, init?: RequestInit): Promise<T> {
+    const serviceUrl = await this.getServiceUrl();
+    const apiUrl = `${serviceUrl}${input}`;
+    const response = await this.fetchApi.fetch(apiUrl, init);
+    if (!response.ok) {
+      console.error(`Response Error: ${response.statusText}`);
+      throw await ResponseError.fromResponse(response);
+    }
+
+    const jsonResponse = await response.json();
+    return jsonResponse;
+  }
+
+  public async getWeather(location: string): Promise<WeatherResponse> {
+    const url = `/current?access_key=${this.apiKey}&query=${location}`;
+
+    const response = await this.fetch<WeatherResponse>(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    return response;
+  }
+}
+
+
+WeatherCardComponent.tsx
+
+import React, { useState, useEffect } from 'react';
+import { useApi, configApiRef } from '@backstage/core-plugin-api';
+import { weatherApiRef } from '../../api/WeatherApi';
+import { Card, CardContent, Typography, CircularProgress } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import { WeatherResponse, ErrorResponse } from '../../api/types';
+
+const useStyles = makeStyles((theme) => ({
+  card: {
+    width: '100%',
+    maxWidth: 400,
+    margin: theme.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[3],
+  },
+  cardContent: {
+    paddingTop: theme.spacing(1),
+  },
+  weatherDetail: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weatherImage: {
+    width: 50,
+    height: 50,
+  },
+}));
+
+export const WeatherCardComponent = () => {
+  const classes = useStyles();
+  const config = useApi(configApiRef);
+  const weatherApi = useApi(weatherApiRef);
+  const defaultLocation = config.getOptionalString('weather.defaultLocation') || 'Stockholm';
+  const [weather, setWeather] = useState<WeatherResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(null);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        setLoading(true);
+        const weatherData: WeatherResponse = await weatherApi.getWeather(defaultLocation);
+        if (!weatherData.success && weatherData.error) {
+          const errorInfo = weatherData.error;
+          setError(`Error ${errorInfo.code}: ${errorInfo.type} - ${errorInfo.info}`);
+          setErrorResponse(weatherData as ErrorResponse);
+          setWeather(null);
+        } else {
+          setWeather(weatherData);
+          setError(null);
+          setErrorResponse(null);
+        }
+      } catch (err) {
+        console.error(`Failed to fetch weather data: ${err}`);
+        if (typeof err === 'object' && err !== null) {
+          setErrorResponse(err as ErrorResponse);
+        }
+        setError('Failed to fetch weather data');
+        setWeather(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWeather();
+  }, [defaultLocation, weatherApi]);
+
+  if (loading) {
+    return <CircularProgress />;
+  }
+
+  return (
+    <Card className={classes.card}>
+      <CardContent className={classes.cardContent}>
+        <Typography variant="h5">Weather in {defaultLocation}</Typography>
+        {error ? (
+          <>
+            <Typography color="error">{error}</Typography>
+            <Typography variant="body2" color="error">{JSON.stringify(errorResponse, null, 2)}</Typography>
+          </>
+        ) : (
+          weather && (
+            <>
+              <div className={classes.weatherDetail}>
+                <Typography variant="h6">{weather.current.temperature}°C</Typography>
+                <img src={weather.current.weather_icons[0]} alt="Weather Icon" className={classes.weatherImage} />
+              </div>
+              <Typography>{weather.current.weather_descriptions.join(', ')}</Typography>
+              <Typography>Wind: {weather.current.wind_speed} km/h</Typography>
+              <Typography>Humidity: {weather.current.humidity}%</Typography>
+              <Typography>Feels Like: {weather.current.feelslike}°C</Typography>
+              <Typography>Visibility: {weather.current.visibility} km</Typography>
+              <Typography>Local Time: {weather.location.localtime}</Typography>
+              <Typography>Day/Night: {weather.current.is_day === 'yes' ? 'Day' : 'Night'}</Typography>
+            </>
+          )
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+
+the api url through postman is 
+
+http://api.weatherstack.com/current?access_key=bcb62d28ce8b7dd029c920d05fb580ac&query=ooty
+
+
+you can use both access key and query for location in the proxy it self and try it can be done through pathrewrite which is mentioned in the backstage proxy docs as it dont have something like queryparams 
+
+do the changes in the all files if necessary 
